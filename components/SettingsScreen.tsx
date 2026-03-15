@@ -68,7 +68,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ currentSettings, onSave
                         id="totalRounds"
                         type="range"
                         min="5"
-                        max="25"
+                        max="200"
                         step="1"
                         value={settings.totalRounds}
                         onChange={(e) => setSettings(s => ({ ...s, totalRounds: Number(e.target.value) }))}
@@ -84,8 +84,8 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ currentSettings, onSave
                     <input
                         id="wordLength"
                         type="range"
-                        min="3"
-                        max="5"
+                        min="1"
+                        max="9"
                         step="1"
                         value={settings.wordLength}
                         onChange={(e) => setSettings(s => ({ ...s, wordLength: Number(e.target.value) }))}
