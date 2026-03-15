@@ -157,7 +157,7 @@ const getChallenge = (
 };
 
 
-export const generateInitialPuzzle = (numNodes: number = 5, challengeType: Settings['challengeType'] = 'mixed', wordLength: number = 3): { premises: Premise[], challenge: Challenge, coordinates: Map<string, Vector>, nodes: string[] } => {
+export const generateInitialPuzzle = (numNodes: number = 3, challengeType: Settings['challengeType'] = 'mixed', wordLength: number = 3): { premises: Premise[], challenge: Challenge, coordinates: Map<string, Vector>, nodes: string[] } => {
     const words = new Set<string>();
     while (words.size < numNodes) {
         words.add(generateNonsenseWord(wordLength));
