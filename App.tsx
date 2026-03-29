@@ -7,26 +7,34 @@ import StartScreen from './components/StartScreen';
 import GameScreen from './components/GameScreen';
 import GameOverScreen from './components/GameOverScreen';
 import SettingsScreen from './components/SettingsScreen';
+import HistoryScreen from './components/HistoryScreen';
+import { useSound } from './hooks/useSound';
 
 const App: React.FC = () => {
     const [gameState, setGameState] = useState<GameState>('idle');
     const [score, setScore] = useState(0);
     const [timeLeft, setTimeLeft] = useState(30);
     const [currentRound, setCurrentRound] = useState(1);
+    const [correctAnswers, setCorrectAnswers] = useState(0);
     const [gameOverReason, setGameOverReason] = useState<GameOverReason>('time');
     const [isMemorizing, setIsMemorizing] = useState(false);
     const [memorizationTimeLeft, setMemorizationTimeLeft] = useState(30);
+    const [gameBias, setGameBias] = useState(0.5);
+
+    const { playCorrect, playIncorrect } = useSound();
 
     const [settings, setSettings] = useState<Settings>({
-        initialPremises: 5,
-        initialTime: 30,
+        initialPremises: 3,
+        voronoiComplexity: 12,
         totalRounds: 10,
         challengeType: 'mixed',
         wordLength: 3,
         devMode: false,
+        stimuliType: 'words',
+        relationMode: 'spatial',
     });
     
-    const [engine, setEngine] = useState(() => new RelationalEngine());
+    const [engine, setEngine] = useState(() => new RelationalEngine('spatial'));
     const [currentChallenge, setCurrentChallenge] = useState<Challenge | null>(null);
     const [puzzleState, setPuzzleState] = useState<{ nodes: string[]; coordinates: Map<string, Vector> } | null>(null);
     const [lastPremise, setLastPremise] = useState<Premise | null>(null);
@@ -34,23 +42,40 @@ const App: React.FC = () => {
     const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
     const [oldestNode, setOldestNode] = useState<string | null>(null);
 
+    const saveGameToHistory = useCallback((finalScore: number, finalCorrect: number, rounds: number) => {
+        const entry = {
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            score: finalScore,
+            correctAnswers: finalCorrect,
+            totalRounds: rounds,
+            settings: { ...settings }
+        };
+
+        const existing = localStorage.getItem('relational_reasoning_history');
+        const history = existing ? JSON.parse(existing) : [];
+        history.push(entry);
+        localStorage.setItem('relational_reasoning_history', JSON.stringify(history));
+    }, [settings]);
+
     useEffect(() => {
         if (gameState !== 'playing' || feedback || isMemorizing) return;
         if (timeLeft <= 0) {
             setGameOverReason('time');
             setGameState('gameOver');
+            saveGameToHistory(score, correctAnswers, currentRound);
             return;
         }
         const timer = setInterval(() => setTimeLeft(t => t - 1), 1000);
         return () => clearInterval(timer);
-    }, [gameState, timeLeft, feedback, isMemorizing]);
+    }, [gameState, timeLeft, feedback, isMemorizing, score, correctAnswers, currentRound, saveGameToHistory]);
 
     const handleContinueFromMemorization = useCallback(() => {
         if (!puzzleState) return;
 
-        const nextStep = advancePuzzle(puzzleState.nodes, puzzleState.coordinates, settings.challengeType, settings.wordLength);
+        const nextStep = advancePuzzle(puzzleState.nodes, puzzleState.coordinates, settings.challengeType, settings.wordLength, gameBias, settings.relationMode, settings.stimuliType);
         
-        const newEngine = new RelationalEngine();
+        const newEngine = new RelationalEngine(settings.relationMode);
         const allNodes = nextStep.updatedNodes;
         const allCoords = nextStep.updatedCoordinates;
         for (const node1 of allNodes) {
@@ -74,7 +99,7 @@ const App: React.FC = () => {
         setInitialPremises(null);
         setIsMemorizing(false);
         setOldestNode(nextStep.oldestNode);
-    }, [puzzleState, settings.challengeType, settings.wordLength]);
+    }, [puzzleState, settings.challengeType, settings.wordLength, gameBias, settings.relationMode, settings.stimuliType]);
 
     useEffect(() => {
         if (gameState !== 'playing' || !isMemorizing) return;
@@ -92,8 +117,11 @@ const App: React.FC = () => {
     }, [gameState, isMemorizing, memorizationTimeLeft, handleContinueFromMemorization]);
 
     const handleStart = useCallback(() => {
-        const initialPuzzle = generateInitialPuzzle(settings.initialPremises, settings.challengeType, settings.wordLength);
-        const newEngine = new RelationalEngine();
+        const bias = Math.random() < 0.5 ? 0.65 : 0.35;
+        setGameBias(bias);
+        
+        const initialPuzzle = generateInitialPuzzle(settings.initialPremises, settings.challengeType, settings.wordLength, bias, settings.relationMode, settings.stimuliType);
+        const newEngine = new RelationalEngine(settings.relationMode);
         initialPuzzle.premises.forEach(p => newEngine.addRelation(p.itemA, p.direction, p.itemB));
 
         setEngine(newEngine);
@@ -101,8 +129,9 @@ const App: React.FC = () => {
         setCurrentChallenge(null);
         setLastPremise(null); 
         setInitialPremises(initialPuzzle.premises);
-        setTimeLeft(settings.initialTime);
+        setTimeLeft(30);
         setScore(0);
+        setCorrectAnswers(0);
         setCurrentRound(1);
         setGameState('playing');
         setFeedback(null);
@@ -131,9 +160,12 @@ const App: React.FC = () => {
         setFeedback(wasCorrect ? 'correct' : 'incorrect');
 
         if (wasCorrect) {
+            playCorrect();
             setScore(s => s + 10);
-            setTimeLeft(t => Math.min(settings.initialTime, t + 10));
+            setCorrectAnswers(c => c + 1);
+            setTimeLeft(t => Math.min(30, t + 10));
         } else {
+            playIncorrect();
             setTimeLeft(t => Math.max(0, t - 10));
         }
         
@@ -141,11 +173,17 @@ const App: React.FC = () => {
             if (wasCorrect && currentRound >= settings.totalRounds) {
                 setGameOverReason('rounds');
                 setGameState('gameOver');
+                saveGameToHistory(score + 10, correctAnswers + 1, currentRound);
                 return;
             }
+            
+            if (!wasCorrect && timeLeft <= 10 && currentRound >= settings.totalRounds) {
+                 // Special case where incorrect answer ends game due to time
+                 // Handled by useEffect, but good to be safe
+            }
 
-            const nextStep = advancePuzzle(puzzleState.nodes, puzzleState.coordinates, settings.challengeType, settings.wordLength);
-            const newEngine = new RelationalEngine();
+            const nextStep = advancePuzzle(puzzleState.nodes, puzzleState.coordinates, settings.challengeType, settings.wordLength, gameBias, settings.relationMode, settings.stimuliType);
+            const newEngine = new RelationalEngine(settings.relationMode);
             const allNodes = nextStep.updatedNodes;
             const allCoords = nextStep.updatedCoordinates;
             
@@ -172,11 +210,12 @@ const App: React.FC = () => {
             setOldestNode(nextStep.oldestNode);
         }, 800);
 
-    }, [currentChallenge, puzzleState, engine, currentRound, settings]);
+    }, [currentChallenge, puzzleState, engine, currentRound, settings, gameBias]);
     
     const handleQuit = () => {
         setGameOverReason('quit');
         setGameState('gameOver');
+        saveGameToHistory(score, correctAnswers, currentRound);
     };
 
     const handleGoToMenu = () => setGameState('idle');
@@ -189,6 +228,8 @@ const App: React.FC = () => {
         switch (gameState) {
             case 'settings':
                 return <SettingsScreen currentSettings={settings} onSave={handleSaveSettings} />;
+            case 'history':
+                return <HistoryScreen onBack={() => setGameState('idle')} />;
             case 'playing':
                 return <GameScreen
                     score={score}
@@ -207,12 +248,17 @@ const App: React.FC = () => {
                     puzzleState={puzzleState}
                     oldestNode={oldestNode}
                     memorizationTimeLeft={memorizationTimeLeft}
+                    voronoiComplexity={settings.voronoiComplexity}
                 />;
             case 'gameOver':
                 return <GameOverScreen score={score} onGoToMenu={handleGoToMenu} reason={gameOverReason} />;
             case 'idle':
             default:
-                return <StartScreen onStart={handleStart} onShowSettings={() => setGameState('settings')} />;
+                return <StartScreen 
+                    onStart={handleStart} 
+                    onShowSettings={() => setGameState('settings')} 
+                    onShowHistory={() => setGameState('history')}
+                />;
         }
     };
     

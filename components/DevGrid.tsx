@@ -1,15 +1,17 @@
 
 import React from 'react';
 import type { Vector, Premise } from '../types';
+import Stimulus from './Stimulus';
 
 interface DevGridProps {
     nodes: string[];
     coordinates: Map<string, Vector>;
     lastPremise: Premise | null;
     oldestNode: string | null;
+    voronoiComplexity: number;
 }
 
-const DevGrid: React.FC<DevGridProps> = ({ nodes, coordinates, lastPremise, oldestNode }) => {
+const DevGrid: React.FC<DevGridProps> = ({ nodes, coordinates, lastPremise, oldestNode, voronoiComplexity }) => {
     if (nodes.length === 0) {
         return null;
     }
@@ -23,8 +25,8 @@ const DevGrid: React.FC<DevGridProps> = ({ nodes, coordinates, lastPremise, olde
         maxY = Math.max(maxY, coord[1]);
     }
     
-    const gridWidth = maxX - minX + 1;
-    const gridHeight = maxY - minY + 1;
+    const gridWidth = Math.max(1, maxX - minX + 1);
+    const gridHeight = Math.max(1, maxY - minY + 1);
 
     // 2. Create grid data structure
     const grid: (string | null)[][] = Array(gridHeight).fill(null).map(() => Array(gridWidth).fill(null));
@@ -44,7 +46,7 @@ const DevGrid: React.FC<DevGridProps> = ({ nodes, coordinates, lastPremise, olde
     }
     
     return (
-        <div className="mt-8 p-4 bg-slate-900/70 border-2 border-dashed border-cyan-400 rounded-lg font-space-mono">
+        <div className="mt-8 p-4 bg-slate-900/70 border-2 border-dashed border-cyan-400 rounded-lg font-space-mono overflow-auto max-h-96">
             <h3 className="text-center text-cyan-400 font-bold mb-2">DEV MODE: World State</h3>
             {oldestNode && <p className="text-center text-sm text-red-400 mb-2">Removed: {oldestNode}</p>}
             <div 
@@ -61,18 +63,18 @@ const DevGrid: React.FC<DevGridProps> = ({ nodes, coordinates, lastPremise, olde
                         const isRef = lastPremise && cell === lastPremise.itemB;
 
                         if (isNewItem) {
-                            cellStyle += 'bg-yellow-400 text-slate-900 font-bold animate-pop-in';
+                            cellStyle += 'bg-yellow-400/20 text-slate-900 font-bold animate-pulse';
                         } else if (isRef) {
-                            cellStyle += 'bg-purple-500 text-white font-bold';
+                            cellStyle += 'bg-purple-500/20 text-white font-bold';
                         } else if (cell) {
-                             cellStyle += 'bg-slate-600 text-slate-100';
+                             cellStyle += 'bg-slate-600/50 text-slate-100';
                         } else {
                             cellStyle += 'bg-transparent';
                         }
                         
                         return (
                             <div key={`${rowIndex}-${colIndex}`} className={cellStyle}>
-                                {cell}
+                                {cell ? <Stimulus id={cell} size={30} complexity={voronoiComplexity} /> : null}
                             </div>
                         );
                     })

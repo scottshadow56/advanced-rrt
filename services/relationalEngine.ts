@@ -1,18 +1,42 @@
 
-import type { Vector } from '../types';
+import type { Vector, Settings } from '../types';
 
 export class RelationalEngine {
     public dirMap: Map<string, Vector>;
     private graph: Map<string, { neighbor: string; vector: Vector }[]>;
 
-    constructor() {
-        this.dirMap = new Map([
-            ["North", [0, 1]], ["South", [0, -1]],
-            ["East", [1, 0]], ["West", [-1, 0]],
-            ["North-East", [1, 1]], ["South-East", [1, -1]],
-            ["North-West", [-1, 1]], ["South-West", [-1, -1]]
-        ]);
+    constructor(mode: Settings['relationMode'] = 'spatial') {
+        this.dirMap = this.getDirMap(mode);
         this.graph = new Map();
+    }
+
+    private getDirMap(mode: Settings['relationMode']): Map<string, Vector> {
+        switch (mode) {
+            case 'vertical':
+                return new Map([
+                    ["Above", [0, 1]], ["Below", [0, -1]]
+                ]);
+            case 'comparison':
+                return new Map([
+                    ["Greater than", [1, 0]], ["Less than", [-1, 0]]
+                ]);
+            case 'temporal':
+                return new Map([
+                    ["After", [1, 0]], ["Before", [-1, 0]]
+                ]);
+            case 'distinction':
+                return new Map([
+                    ["the Same as", [0, 0]], ["the Opposite of", [1, 0]]
+                ]);
+            case 'spatial':
+            default:
+                return new Map([
+                    ["North of", [0, 1]], ["South of", [0, -1]],
+                    ["East of", [1, 0]], ["West of", [-1, 0]],
+                    ["North-East of", [1, 1]], ["South-East of", [1, -1]],
+                    ["North-West of", [-1, 1]], ["South-West of", [-1, -1]]
+                ]);
+        }
     }
     
     public getAllDirections(): string[] {

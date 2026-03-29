@@ -1,8 +1,9 @@
 
 import React from 'react';
 import type { Premise, Challenge, Vector } from '../types';
-import { TimerIcon, CheckIcon, XIcon, StarIcon, LogOutIcon, PlayIcon } from './Icons';
+import { Timer, Check, X, Star, LogOut, Play } from 'lucide-react';
 import DevGrid from './DevGrid';
+import Stimulus from './Stimulus';
 
 interface GameScreenProps {
     score: number;
@@ -21,9 +22,10 @@ interface GameScreenProps {
     puzzleState: { nodes: string[]; coordinates: Map<string, Vector> } | null;
     oldestNode: string | null;
     memorizationTimeLeft: number;
+    voronoiComplexity: number;
 }
 
-const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onAnswer, feedback, lastPremise, initialPremises, onQuit, currentRound, totalRounds, isMemorizing, onContinue, devMode, puzzleState, oldestNode, memorizationTimeLeft }) => {
+const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onAnswer, feedback, lastPremise, initialPremises, onQuit, currentRound, totalRounds, isMemorizing, onContinue, devMode, puzzleState, oldestNode, memorizationTimeLeft, voronoiComplexity }) => {
     const timerColor = timeLeft <= 10 ? 'text-red-500' : timeLeft <= 20 ? 'text-yellow-400' : 'text-cyan-400';
     const memorizationTimerColor = memorizationTimeLeft <= 10 ? 'text-red-500' : memorizationTimeLeft <= 20 ? 'text-yellow-400' : 'text-cyan-400';
 
@@ -33,8 +35,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
         if (challenge.type === 'conclusion') {
             const { itemA, direction, itemB } = challenge.statement;
             return (
-                <div className="mt-2 text-2xl font-space-mono text-slate-100 p-4 bg-slate-900/50 rounded-lg border-2 border-dashed border-slate-600">
-                    Is <span className="text-yellow-400">{itemA}</span> <span className="text-purple-400">{direction}</span> of <span className="text-yellow-400">{itemB}</span>?
+                <div className="mt-2 text-2xl font-space-mono text-slate-100 p-4 bg-slate-900/50 rounded-lg border-2 border-dashed border-slate-600 flex flex-wrap items-center justify-center gap-2">
+                    Is <Stimulus id={itemA} complexity={voronoiComplexity} /> <span className="text-purple-400">{direction}</span> <Stimulus id={itemB} complexity={voronoiComplexity} />?
                 </div>
             );
         }
@@ -43,9 +45,12 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
             const { itemA1, itemB1, itemA2, itemB2 } = challenge.statement;
             return (
                 <div className="mt-2 text-xl sm:text-2xl font-space-mono text-slate-100 p-4 bg-slate-900/50 rounded-lg border-2 border-dashed border-slate-600">
-                    Is the relation of <span className="text-yellow-400">{itemA1}</span> to <span className="text-yellow-400">{itemB1}</span>
-                    <br />
-                    the same as <span className="text-yellow-400">{itemA2}</span> to <span className="text-yellow-400">{itemB2}</span>?
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                        Is the relation of <Stimulus id={itemA1} complexity={voronoiComplexity} /> to <Stimulus id={itemB1} complexity={voronoiComplexity} />
+                    </div>
+                    <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
+                        the same as <Stimulus id={itemA2} complexity={voronoiComplexity} /> to <Stimulus id={itemB2} complexity={voronoiComplexity} />?
+                    </div>
                 </div>
             );
         }
@@ -55,19 +60,19 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
     return (
         <div className="p-6 bg-slate-800/50 rounded-lg border border-slate-700 w-full animate-fade-in relative">
             <button onClick={onQuit} className="absolute top-4 left-4 text-slate-500 hover:text-red-500 transition-colors" aria-label="Quit Game">
-                <LogOutIcon className="w-6 h-6" />
+                <LogOut className="w-6 h-6" />
             </button>
             
             <div className="flex justify-between items-center pb-4 border-b border-slate-700">
                 <div className="flex items-center gap-2 text-2xl font-bold">
-                    <StarIcon className="w-6 h-6 text-yellow-400" />
+                    <Star className="w-6 h-6 text-yellow-400" />
                     <span>{score}</span>
                 </div>
                  <div className="font-bold text-slate-400">
                     {isMemorizing ? 'Memorize!' : <>Round {currentRound} <span className="text-xs">/ {totalRounds}</span></>}
                 </div>
                 <div className={`flex items-center gap-2 text-2xl font-bold ${isMemorizing ? memorizationTimerColor : timerColor}`}>
-                    <TimerIcon className="w-6 h-6" />
+                    <Timer className="w-6 h-6" />
                     <span>{isMemorizing ? memorizationTimeLeft : timeLeft}</span>
                 </div>
             </div>
@@ -78,17 +83,17 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
                         <h2 className="text-slate-400 text-lg">Memorize the starting map:</h2>
                         <div className="mt-2 space-y-2 text-xl font-space-mono text-slate-100 p-4 bg-slate-900/50 rounded-lg animate-pop-in">
                            {initialPremises.map((p, i) => (
-                               <p key={`${p.itemA}-${p.itemB}-${i}`}>
-                                   <span className="text-yellow-400">{p.itemA}</span> is <span className="text-purple-400">{p.direction}</span> of <span className="text-yellow-400">{p.itemB}</span>
-                               </p>
+                               <div key={`${p.itemA}-${p.itemB}-${i}`} className="flex flex-wrap items-center justify-center gap-2">
+                                   <Stimulus id={p.itemA} complexity={voronoiComplexity} /> is <span className="text-purple-400">{p.direction}</span> <Stimulus id={p.itemB} complexity={voronoiComplexity} />
+                               </div>
                            ))}
                         </div>
                     </>
                 ) : lastPremise && (
                      <>
                         <h2 className="text-slate-400 text-lg">The map has changed:</h2>
-                        <div key={`${lastPremise.itemA}-${lastPremise.itemB}`} className="mt-2 text-2xl font-space-mono text-slate-100 p-4 bg-slate-900/50 rounded-lg animate-pop-in">
-                            <span className="text-yellow-400">{lastPremise.itemA}</span> is <span className="text-purple-400">{lastPremise.direction}</span> of <span className="text-yellow-400">{lastPremise.itemB}</span>
+                        <div key={`${lastPremise.itemA}-${lastPremise.itemB}`} className="mt-2 text-2xl font-space-mono text-slate-100 p-4 bg-slate-900/50 rounded-lg animate-pop-in flex flex-wrap items-center justify-center gap-2">
+                            <Stimulus id={lastPremise.itemA} complexity={voronoiComplexity} /> is <span className="text-purple-400">{lastPremise.direction}</span> <Stimulus id={lastPremise.itemB} complexity={voronoiComplexity} />
                         </div>
                      </>
                 )}
@@ -100,7 +105,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
                         onClick={onContinue}
                         className="w-full flex items-center justify-center gap-3 text-xl font-bold py-4 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-all transform hover:scale-105"
                     >
-                        <PlayIcon className="w-6 h-6" />
+                        <Play className="w-6 h-6" />
                         Start Round 1
                     </button>
                 </div>
@@ -117,14 +122,14 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
                             disabled={!!feedback}
                             className="flex items-center justify-center gap-3 text-2xl font-bold py-4 rounded-lg bg-green-600 text-white hover:bg-green-500 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
                         >
-                            <CheckIcon className="w-7 h-7" /> TRUE
+                            <Check className="w-7 h-7" /> TRUE
                         </button>
                         <button 
                             onClick={() => onAnswer(false)}
                             disabled={!!feedback}
                             className="flex items-center justify-center gap-3 text-2xl font-bold py-4 rounded-lg bg-red-600 text-white hover:bg-red-500 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
                         >
-                            <XIcon className="w-7 h-7" /> FALSE
+                            <X className="w-7 h-7" /> FALSE
                         </button>
                     </div>
                 </>
@@ -132,7 +137,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
             
             {feedback && (
                  <div className={`absolute inset-0 bg-slate-800/80 backdrop-blur-sm flex items-center justify-center rounded-lg animate-pop-in`}>
-                     {feedback === 'correct' ? <CheckIcon className="w-32 h-32 text-green-400"/> : <XIcon className="w-32 h-32 text-red-400"/> }
+                     {feedback === 'correct' ? <Check className="w-32 h-32 text-green-400"/> : <X className="w-32 h-32 text-red-400"/> }
                  </div>
             )}
 
@@ -142,6 +147,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
                     coordinates={puzzleState.coordinates}
                     lastPremise={lastPremise}
                     oldestNode={oldestNode}
+                    voronoiComplexity={voronoiComplexity}
                 />
             )}
         </div>
