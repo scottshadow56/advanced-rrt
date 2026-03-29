@@ -21,8 +21,8 @@ export interface HistoryEntry {
     correctAnswers: number;
     totalRounds: number;
     settings: Settings;
+    duration: number; // in milliseconds
 }
-
 export interface Premise {
     itemA: string;
     direction: string;
