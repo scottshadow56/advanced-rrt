@@ -41,22 +41,25 @@ const App: React.FC = () => {
     const [initialPremises, setInitialPremises] = useState<Premise[] | null>(null);
     const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
     const [oldestNode, setOldestNode] = useState<string | null>(null);
+    const [gameStartTime, setGameStartTime] = useState<number | null>(null);
 
     const saveGameToHistory = useCallback((finalScore: number, finalCorrect: number, rounds: number) => {
+        const duration = gameStartTime ? Date.now() - gameStartTime : 0;
         const entry = {
             id: crypto.randomUUID(),
             timestamp: Date.now(),
             score: finalScore,
             correctAnswers: finalCorrect,
             totalRounds: rounds,
-            settings: { ...settings }
+            settings: { ...settings },
+            duration
         };
 
         const existing = localStorage.getItem('relational_reasoning_history');
         const history = existing ? JSON.parse(existing) : [];
         history.push(entry);
         localStorage.setItem('relational_reasoning_history', JSON.stringify(history));
-    }, [settings]);
+    }, [settings, gameStartTime]);
 
     useEffect(() => {
         if (gameState !== 'playing' || feedback || isMemorizing) return;
@@ -138,6 +141,7 @@ const App: React.FC = () => {
         setIsMemorizing(true);
         setOldestNode(null);
         setMemorizationTimeLeft(30);
+        setGameStartTime(Date.now());
     }, [settings]);
 
     const handleAnswer = useCallback((userAnswer: boolean) => {
