@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
 import { ArrowLeft, BarChart2, History, TrendingUp, Clock } from 'lucide-react';
 import type { HistoryEntry, Settings } from '../types';
 
@@ -39,6 +39,7 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ onBack }) => {
 
     const filteredHistory = useMemo(() => {
         return history.filter(entry => {
+            if (entry.score === 0) return false;
             if (filter.relationMode !== 'all' && entry.settings.relationMode !== filter.relationMode) return false;
             if (filter.stimuliType !== 'all' && entry.settings.stimuliType !== filter.stimuliType) return false;
             if (filter.challengeType !== 'all' && entry.settings.challengeType !== filter.challengeType) return false;
@@ -231,11 +232,6 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ onBack }) => {
                                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                                 <XAxis dataKey="date" stroke="#94a3b8" fontSize={10} />
                                 <YAxis stroke="#94a3b8" fontSize={10} />
-                                <Tooltip 
-                                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155' }}
-                                    itemStyle={{ color: '#22d3ee' }}
-                                    labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
-                                />
                                 <Line 
                                     type="monotone" 
                                     dataKey="score" 
