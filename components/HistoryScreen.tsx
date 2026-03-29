@@ -1,8 +1,21 @@
 
 import React, { useMemo, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { ArrowLeft, BarChart2, History, TrendingUp } from 'lucide-react';
+import { ArrowLeft, BarChart2, History, TrendingUp, Clock } from 'lucide-react';
 import type { HistoryEntry, Settings } from '../types';
+
+const formatDuration = (ms: number) => {
+    if (!ms) return '0s';
+    const seconds = Math.floor((ms / 1000) % 60);
+    const minutes = Math.floor((ms / (1000 * 60)) % 60);
+    const hours = Math.floor(ms / (1000 * 60 * 60));
+
+    const parts = [];
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0) parts.push(`${minutes}m`);
+    if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`);
+    return parts.join(' ');
+};
 
 interface HistoryScreenProps {
     onBack: () => void;
@@ -74,12 +87,19 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ onBack }) => {
         const totalCorrect = filteredHistory.reduce((acc, curr) => acc + curr.correctAnswers, 0);
         const totalRounds = filteredHistory.reduce((acc, curr) => acc + curr.totalRounds, 0);
         
+        const now = Date.now();
+        const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
+        const dailyPlayTime = history
+            .filter(entry => entry.timestamp > twentyFourHoursAgo)
+            .reduce((acc, curr) => acc + (curr.duration || 0), 0);
+
         return {
             avgScore: Math.round(totalScore / filteredHistory.length),
             avgAccuracy: Math.round((totalCorrect / totalRounds) * 100),
             totalGames: filteredHistory.length,
+            dailyPlayTime: formatDuration(dailyPlayTime),
         };
-    }, [filteredHistory]);
+    }, [filteredHistory, history]);
 
     if (history.length === 0) {
         return (
@@ -113,7 +133,7 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ onBack }) => {
                 <div className="w-6" /> {/* Spacer */}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-700 text-center">
                     <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Avg Score</p>
                     <p className="text-2xl font-bold text-cyan-400">{stats?.avgScore || 0}</p>
@@ -125,6 +145,12 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ onBack }) => {
                 <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-700 text-center">
                     <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Total Games</p>
                     <p className="text-2xl font-bold text-purple-400">{stats?.totalGames || 0}</p>
+                </div>
+                <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-700 text-center">
+                    <p className="text-slate-500 text-xs uppercase tracking-wider mb-1 flex items-center justify-center gap-1">
+                        <Clock className="w-3 h-3" /> 24h Play Time
+                    </p>
+                    <p className="text-2xl font-bold text-orange-400">{stats?.dailyPlayTime || '0s'}</p>
                 </div>
             </div>
 
