@@ -40,5 +40,13 @@ export const useSound = () => {
         playSound(220, 'sawtooth', 0.3);
     }, [playSound]);
 
-    return { playCorrect, playIncorrect };
+    const playHighPitch = useCallback(() => {
+        playSound(1320, 'sine', 0.2);
+    }, [playSound]);
+
+    const playLowPitch = useCallback(() => {
+        playSound(330, 'sine', 0.2);
+    }, [playSound]);
+
+    return { playCorrect, playIncorrect, playHighPitch, playLowPitch };
 };

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import type { Premise, Challenge, Vector } from '../types';
 import { Timer, Check, X, Star, LogOut, Play } from 'lucide-react';
 import DevGrid from './DevGrid';
@@ -23,11 +23,151 @@ interface GameScreenProps {
     oldestNode: string | null;
     memorizationTimeLeft: number;
     voronoiComplexity: number;
+    playHighPitch: () => void;
+    playLowPitch: () => void;
+    minimalVertical: boolean;
+    minimalTemporal: boolean;
+    minimalSize: boolean;
+    minimalHierarchy: boolean;
+    isShowingLegend: boolean;
+    onContinueFromLegend: () => void;
 }
 
-const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onAnswer, feedback, lastPremise, initialPremises, onQuit, currentRound, totalRounds, isMemorizing, onContinue, devMode, puzzleState, oldestNode, memorizationTimeLeft, voronoiComplexity }) => {
+const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onAnswer, feedback, lastPremise, initialPremises, onQuit, currentRound, totalRounds, isMemorizing, onContinue, devMode, puzzleState, oldestNode, memorizationTimeLeft, voronoiComplexity, playHighPitch, playLowPitch, minimalVertical, minimalTemporal, minimalSize, minimalHierarchy, isShowingLegend, onContinueFromLegend }) => {
     const timerColor = timeLeft <= 10 ? 'text-red-500' : timeLeft <= 20 ? 'text-yellow-400' : 'text-cyan-400';
     const memorizationTimerColor = memorizationTimeLeft <= 10 ? 'text-red-500' : memorizationTimeLeft <= 20 ? 'text-yellow-400' : 'text-cyan-400';
+
+    useEffect(() => {
+        const checkAndPlaySound = (direction: string) => {
+            if (direction.includes('Hierarchically Above')) {
+                playHighPitch();
+            } else if (direction.includes('Hierarchically Below')) {
+                playLowPitch();
+            }
+        };
+
+        if (isMemorizing && initialPremises) {
+            initialPremises.forEach(p => checkAndPlaySound(p.direction));
+        } else if (lastPremise) {
+            checkAndPlaySound(lastPremise.direction);
+        }
+
+        if (challenge && challenge.type === 'conclusion') {
+            checkAndPlaySound(challenge.statement.direction);
+        }
+    }, [isMemorizing, initialPremises, lastPremise, challenge, playHighPitch, playLowPitch]);
+
+    const renderDirection = (direction: string) => {
+        const parts = direction.split(' and ');
+        let vertical: 'above' | 'below' | null = null;
+        let temporal: 'after' | 'before' | null = null;
+        let size: 'bigger' | 'smaller' | null = null;
+        let hierarchy: 'above' | 'below' | null = null;
+
+        const filteredParts = parts.filter(p => {
+            if (minimalVertical && p === 'Above') {
+                vertical = 'above';
+                return false;
+            }
+            if (minimalVertical && p === 'Below') {
+                vertical = 'below';
+                return false;
+            }
+            if (minimalTemporal && p === 'After') {
+                temporal = 'after';
+                return false;
+            }
+            if (minimalTemporal && p === 'Before') {
+                temporal = 'before';
+                return false;
+            }
+            if (minimalSize && p === 'Bigger than') {
+                size = 'bigger';
+                return false;
+            }
+            if (minimalSize && p === 'Smaller than') {
+                size = 'smaller';
+                return false;
+            }
+            if (minimalHierarchy && p === 'Hierarchically Above') {
+                hierarchy = 'above';
+                return false;
+            }
+            if (minimalHierarchy && p === 'Hierarchically Below') {
+                hierarchy = 'below';
+                return false;
+            }
+            return true;
+        });
+
+        const baseText = filteredParts.length > 0 ? filteredParts.join(' and ') : "";
+        
+        // Determine styles
+        let textStyle = "text-slate-100";
+        let lineStyle = "underline decoration-2 underline-offset-4";
+        let shadowStyle = "";
+        let scaleStyle = "";
+
+        // Vertical Logic (Brightness & Shadow)
+        if (vertical === 'above') {
+            // If both vertical and temporal are minimal, keep text default as per request
+            if (!temporal) {
+                textStyle = "text-white";
+            }
+            shadowStyle = "drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]";
+        } else if (vertical === 'below') {
+            if (!temporal) {
+                textStyle = "text-slate-500";
+            }
+        }
+
+        // Temporal Logic (Line Color)
+        if (temporal === 'after') {
+            if (!vertical) {
+                textStyle = "text-green-400";
+            }
+            lineStyle += vertical === 'above' ? " decoration-green-300" : vertical === 'below' ? " decoration-green-800" : " decoration-green-400";
+        } else if (temporal === 'before') {
+            if (!vertical) {
+                textStyle = "text-red-400";
+            }
+            lineStyle += vertical === 'above' ? " decoration-red-300" : vertical === 'below' ? " decoration-red-800" : " decoration-red-400";
+        } else if (vertical) {
+            lineStyle += vertical === 'above' ? " decoration-white" : " decoration-slate-500";
+        } else {
+            lineStyle = ""; // No underline if no vertical/temporal minimal
+        }
+
+        // Size Logic (Scale)
+        if (size === 'bigger') {
+            scaleStyle = "scale-110 inline-block origin-center mx-1 my-0.5";
+        } else if (size === 'smaller') {
+            scaleStyle = "scale-90 inline-block origin-center opacity-80 mx-0.5";
+        }
+
+        // Hierarchy Logic (Border/Outline or just keep audio)
+        // For now, let's add a subtle border for hierarchy if minimal
+        let hierarchyStyle = "";
+        if (hierarchy === 'above') {
+            hierarchyStyle = "border-b-2 border-dashed border-yellow-400/50 pb-0.5";
+        } else if (hierarchy === 'below') {
+            hierarchyStyle = "border-b-2 border-dotted border-slate-600 pb-0.5";
+        }
+
+        // If everything is minimal and no spatial text left, use a placeholder or the original text
+        const finalContent = baseText || direction;
+        const isSpatialOnly = !vertical && !temporal && !size && !hierarchy;
+        
+        if (isSpatialOnly) {
+            return <span className="text-purple-400">{direction}</span>;
+        }
+
+        return (
+            <span className={`${textStyle} ${lineStyle} ${shadowStyle} ${scaleStyle} ${hierarchyStyle} transition-all duration-300`}>
+                {finalContent}
+            </span>
+        );
+    };
 
     const renderChallenge = () => {
         if (!challenge) return null;
@@ -35,8 +175,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
         if (challenge.type === 'conclusion') {
             const { itemA, direction, itemB } = challenge.statement;
             return (
-                <div className="mt-2 text-2xl font-space-mono text-slate-100 p-4 bg-slate-900/50 rounded-lg border-2 border-dashed border-slate-600 flex flex-wrap items-center justify-center gap-2">
-                    Is <Stimulus id={itemA} complexity={voronoiComplexity} /> <span className="text-purple-400">{direction}</span> <Stimulus id={itemB} complexity={voronoiComplexity} />?
+                <div className="mt-2 text-2xl font-space-mono text-slate-100 p-4 bg-slate-900/50 rounded-lg border-2 border-dashed border-slate-600 flex flex-wrap items-center justify-center gap-2 leading-relaxed">
+                    Is <Stimulus id={itemA} complexity={voronoiComplexity} /> {renderDirection(direction)} <Stimulus id={itemB} complexity={voronoiComplexity} />?
                 </div>
             );
         }
@@ -57,6 +197,47 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
         return null;
     };
     
+    const renderLegend = () => {
+        const legendItems = [];
+        if (minimalVertical) {
+            legendItems.push({ label: 'Above', style: "text-white underline decoration-white decoration-2 underline-offset-4 drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]" });
+            legendItems.push({ label: 'Below', style: "text-slate-500 underline decoration-slate-500 decoration-2 underline-offset-4" });
+        }
+        if (minimalTemporal) {
+            legendItems.push({ label: 'After', style: "text-green-400 underline decoration-green-400 decoration-2 underline-offset-4" });
+            legendItems.push({ label: 'Before', style: "text-red-400 underline decoration-red-400 decoration-2 underline-offset-4" });
+        }
+        if (minimalSize) {
+            legendItems.push({ label: 'Bigger', style: "scale-110 inline-block origin-center mx-1 my-0.5 text-slate-100" });
+            legendItems.push({ label: 'Smaller', style: "scale-90 inline-block origin-center opacity-80 mx-0.5 text-slate-100" });
+        }
+        if (minimalHierarchy) {
+            legendItems.push({ label: 'H. Above', style: "border-b-2 border-dashed border-yellow-400/50 pb-0.5 text-slate-100" });
+            legendItems.push({ label: 'H. Below', style: "border-b-2 border-dotted border-slate-600 pb-0.5 text-slate-100" });
+        }
+
+        return (
+            <div className="mt-6 text-center animate-fade-in">
+                <h2 className="text-slate-400 text-lg mb-4 font-bold uppercase tracking-widest">Visual Legend</h2>
+                <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
+                    {legendItems.map((item, i) => (
+                        <div key={i} className="bg-slate-900/50 p-6 rounded-xl border border-slate-700 flex flex-col items-center justify-center gap-3 aspect-square">
+                            <span className={`${item.style} text-xl font-space-mono`}>Item</span>
+                            <span className="text-xs text-slate-500 font-bold uppercase">{item.label}</span>
+                        </div>
+                    ))}
+                </div>
+                <button
+                    onClick={onContinueFromLegend}
+                    className="mt-8 w-full flex items-center justify-center gap-3 text-xl font-bold py-4 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-all transform hover:scale-105"
+                >
+                    <Play className="w-6 h-6" />
+                    Got it, Start Memorizing
+                </button>
+            </div>
+        );
+    };
+    
     return (
         <div className="p-6 bg-slate-800/50 rounded-lg border border-slate-700 w-full animate-fade-in relative">
             <button onClick={onQuit} className="absolute top-4 left-4 text-slate-500 hover:text-red-500 transition-colors" aria-label="Quit Game">
@@ -69,22 +250,24 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
                     <span>{score}</span>
                 </div>
                  <div className="font-bold text-slate-400">
-                    {isMemorizing ? 'Memorize!' : <>Round {currentRound} <span className="text-xs">/ {totalRounds}</span></>}
+                    {isShowingLegend ? 'Legend' : isMemorizing ? 'Memorize!' : <>Round {currentRound} <span className="text-xs">/ {totalRounds}</span></>}
                 </div>
-                <div className={`flex items-center gap-2 text-2xl font-bold ${isMemorizing ? memorizationTimerColor : timerColor}`}>
+                <div className={`flex items-center gap-2 text-2xl font-bold ${isShowingLegend ? 'text-cyan-400' : isMemorizing ? memorizationTimerColor : timerColor}`}>
                     <Timer className="w-6 h-6" />
-                    <span>{isMemorizing ? memorizationTimeLeft : timeLeft}</span>
+                    <span>{isShowingLegend ? '-' : isMemorizing ? memorizationTimeLeft : timeLeft}</span>
                 </div>
             </div>
 
-            <div className="mt-6 text-center">
-                {isMemorizing && initialPremises ? (
+            {isShowingLegend ? renderLegend() : (
+                <>
+                    <div className="mt-6 text-center">
+                        {isMemorizing && initialPremises ? (
                     <>
                         <h2 className="text-slate-400 text-lg">Memorize the starting map:</h2>
-                        <div className="mt-2 space-y-2 text-xl font-space-mono text-slate-100 p-4 bg-slate-900/50 rounded-lg animate-pop-in">
+                        <div className="mt-2 space-y-2 text-xl font-space-mono text-slate-100 p-4 bg-slate-900/50 rounded-lg animate-pop-in leading-relaxed">
                            {initialPremises.map((p, i) => (
                                <div key={`${p.itemA}-${p.itemB}-${i}`} className="flex flex-wrap items-center justify-center gap-2">
-                                   <Stimulus id={p.itemA} complexity={voronoiComplexity} /> is <span className="text-purple-400">{p.direction}</span> <Stimulus id={p.itemB} complexity={voronoiComplexity} />
+                                   <Stimulus id={p.itemA} complexity={voronoiComplexity} /> is {renderDirection(p.direction)} <Stimulus id={p.itemB} complexity={voronoiComplexity} />
                                </div>
                            ))}
                         </div>
@@ -92,8 +275,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
                 ) : lastPremise && (
                      <>
                         <h2 className="text-slate-400 text-lg">The map has changed:</h2>
-                        <div key={`${lastPremise.itemA}-${lastPremise.itemB}`} className="mt-2 text-2xl font-space-mono text-slate-100 p-4 bg-slate-900/50 rounded-lg animate-pop-in flex flex-wrap items-center justify-center gap-2">
-                            <Stimulus id={lastPremise.itemA} complexity={voronoiComplexity} /> is <span className="text-purple-400">{lastPremise.direction}</span> <Stimulus id={lastPremise.itemB} complexity={voronoiComplexity} />
+                        <div key={`${lastPremise.itemA}-${lastPremise.itemB}`} className="mt-2 text-2xl font-space-mono text-slate-100 p-4 bg-slate-900/50 rounded-lg animate-pop-in flex flex-wrap items-center justify-center gap-2 leading-relaxed">
+                            <Stimulus id={lastPremise.itemA} complexity={voronoiComplexity} /> is {renderDirection(lastPremise.direction)} <Stimulus id={lastPremise.itemB} complexity={voronoiComplexity} />
                         </div>
                      </>
                 )}
@@ -134,8 +317,10 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
                     </div>
                 </>
             )}
-            
-            {feedback && (
+        </>
+    )}
+    
+    {feedback && (
                  <div className={`absolute inset-0 bg-slate-800/80 backdrop-blur-sm flex items-center justify-center rounded-lg animate-pop-in`}>
                      {feedback === 'correct' ? <Check className="w-32 h-32 text-green-400"/> : <X className="w-32 h-32 text-red-400"/> }
                  </div>

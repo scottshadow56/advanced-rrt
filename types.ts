@@ -1,5 +1,5 @@
 
-export type Vector = [number, number];
+export type Vector = number[];
 export type GameState = 'idle' | 'playing' | 'gameOver' | 'settings' | 'history';
 export type GameOverReason = 'time' | 'rounds' | 'quit';
 
@@ -11,7 +11,11 @@ export interface Settings {
     wordLength: number;
     devMode: boolean;
     stimuliType: 'words' | 'voronoi';
-    relationMode: 'spatial' | 'vertical' | 'comparison' | 'temporal' | 'distinction';
+    relationMode: 'spatial' | 'vertical' | 'comparison' | 'temporal' | 'distinction' | 'spatial_temporal' | 'spatial_vertical' | 'spatial_temporal_vertical' | 'spatial_temporal_vertical_size' | 'spatial_temporal_vertical_size_hierarchy';
+    minimalVertical: boolean;
+    minimalTemporal: boolean;
+    minimalSize: boolean;
+    minimalHierarchy: boolean;
 }
 
 export interface HistoryEntry {
@@ -23,6 +27,7 @@ export interface HistoryEntry {
     settings: Settings;
     duration: number; // in milliseconds
 }
+
 export interface Premise {
     itemA: string;
     direction: string;

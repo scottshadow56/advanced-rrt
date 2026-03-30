@@ -17,10 +17,21 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ currentSettings, onSave
 
     const challengeTypeOptions: Settings['challengeType'][] = ['conclusions', 'analogies', 'mixed'];
     const stimuliTypeOptions: Settings['stimuliType'][] = ['words', 'voronoi'];
-    const relationModeOptions: Settings['relationMode'][] = ['spatial', 'vertical', 'comparison', 'temporal', 'distinction'];
+    const relationModeOptions: Settings['relationMode'][] = ['spatial', 'vertical', 'comparison', 'temporal', 'distinction', 'spatial_temporal', 'spatial_vertical', 'spatial_temporal_vertical', 'spatial_temporal_vertical_size', 'spatial_temporal_vertical_size_hierarchy'];
+
+    const getModeLabel = (mode: Settings['relationMode']) => {
+        switch (mode) {
+            case 'spatial_temporal': return '2D + Temporal';
+            case 'spatial_vertical': return '2D + Vertical';
+            case 'spatial_temporal_vertical': return '4D (Spatial+Temp+Vert)';
+            case 'spatial_temporal_vertical_size': return '5D (Spatial+Temp+Vert+Size)';
+            case 'spatial_temporal_vertical_size_hierarchy': return '6D (Spatial+Temp+Vert+Size+Hierarchy)';
+            default: return mode;
+        }
+    };
 
     return (
-        <div className="p-6 bg-slate-800/50 rounded-lg border border-slate-700 w-full animate-fade-in">
+        <div className="p-6 bg-slate-800/50 rounded-lg border border-slate-700 w-full animate-fade-in max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold text-cyan-400 mb-6 text-center flex items-center justify-center gap-2">
                 <SettingsIcon className="w-6 h-6" />
                 Game Settings
@@ -137,7 +148,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ currentSettings, onSave
 
                 <div>
                     <label className="block text-lg text-slate-300 mb-2">Relation Mode</label>
-                    <div className="grid grid-cols-3 gap-2 rounded-lg bg-slate-700 p-1">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 rounded-lg bg-slate-700 p-1">
                         {relationModeOptions.map(mode => (
                             <button
                                 key={mode}
@@ -148,10 +159,74 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ currentSettings, onSave
                                     : 'bg-transparent text-slate-300 hover:bg-slate-600'
                                 }`}
                             >
-                                {mode}
+                                {getModeLabel(mode)}
                             </button>
                         ))}
                     </div>
+                </div>
+
+                <div className="space-y-3 p-3 bg-slate-700/30 rounded-lg border border-slate-700">
+                    <h3 className="text-slate-400 text-sm font-bold uppercase tracking-wider">Minimal Mode (Visual Cues)</h3>
+                    
+                    <label className="flex justify-between items-center text-lg text-slate-300">
+                        <span>Vertical (Light/Dark)</span>
+                        <button
+                            onClick={() => setSettings(s => ({ ...s, minimalVertical: !s.minimalVertical }))}
+                            aria-pressed={settings.minimalVertical}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 ${
+                                settings.minimalVertical ? 'bg-indigo-500' : 'bg-slate-700'
+                            }`}
+                        >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                settings.minimalVertical ? 'translate-x-6' : 'translate-x-1'
+                            }`} />
+                        </button>
+                    </label>
+
+                    <label className="flex justify-between items-center text-lg text-slate-300">
+                        <span>Temporal (Red/Green)</span>
+                        <button
+                            onClick={() => setSettings(s => ({ ...s, minimalTemporal: !s.minimalTemporal }))}
+                            aria-pressed={settings.minimalTemporal}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 ${
+                                settings.minimalTemporal ? 'bg-indigo-500' : 'bg-slate-700'
+                            }`}
+                        >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                settings.minimalTemporal ? 'translate-x-6' : 'translate-x-1'
+                            }`} />
+                        </button>
+                    </label>
+
+                    <label className="flex justify-between items-center text-lg text-slate-300">
+                        <span>Size (Scale)</span>
+                        <button
+                            onClick={() => setSettings(s => ({ ...s, minimalSize: !s.minimalSize }))}
+                            aria-pressed={settings.minimalSize}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 ${
+                                settings.minimalSize ? 'bg-indigo-500' : 'bg-slate-700'
+                            }`}
+                        >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                settings.minimalSize ? 'translate-x-6' : 'translate-x-1'
+                            }`} />
+                        </button>
+                    </label>
+
+                    <label className="flex justify-between items-center text-lg text-slate-300">
+                        <span>Hierarchy (Audio)</span>
+                        <button
+                            onClick={() => setSettings(s => ({ ...s, minimalHierarchy: !s.minimalHierarchy }))}
+                            aria-pressed={settings.minimalHierarchy}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 ${
+                                settings.minimalHierarchy ? 'bg-indigo-500' : 'bg-slate-700'
+                            }`}
+                        >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                settings.minimalHierarchy ? 'translate-x-6' : 'translate-x-1'
+                            }`} />
+                        </button>
+                    </label>
                 </div>
 
                 <div>

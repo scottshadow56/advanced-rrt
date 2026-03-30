@@ -18,10 +18,11 @@ const App: React.FC = () => {
     const [correctAnswers, setCorrectAnswers] = useState(0);
     const [gameOverReason, setGameOverReason] = useState<GameOverReason>('time');
     const [isMemorizing, setIsMemorizing] = useState(false);
+    const [isShowingLegend, setIsShowingLegend] = useState(false);
     const [memorizationTimeLeft, setMemorizationTimeLeft] = useState(30);
     const [gameBias, setGameBias] = useState(0.5);
 
-    const { playCorrect, playIncorrect } = useSound();
+    const { playCorrect, playIncorrect, playHighPitch, playLowPitch } = useSound();
 
     const [settings, setSettings] = useState<Settings>({
         initialPremises: 3,
@@ -32,6 +33,10 @@ const App: React.FC = () => {
         devMode: false,
         stimuliType: 'words',
         relationMode: 'spatial',
+        minimalVertical: false,
+        minimalTemporal: false,
+        minimalSize: false,
+        minimalHierarchy: false,
     });
     
     const [engine, setEngine] = useState(() => new RelationalEngine('spatial'));
@@ -73,6 +78,12 @@ const App: React.FC = () => {
         return () => clearInterval(timer);
     }, [gameState, timeLeft, feedback, isMemorizing, score, correctAnswers, currentRound, saveGameToHistory]);
 
+    const handleContinueFromLegend = useCallback(() => {
+        setIsShowingLegend(false);
+        setIsMemorizing(true);
+        setMemorizationTimeLeft(30);
+    }, []);
+
     const handleContinueFromMemorization = useCallback(() => {
         if (!puzzleState) return;
 
@@ -86,9 +97,9 @@ const App: React.FC = () => {
                 if (node1 === node2) continue;
                 const coord1 = allCoords.get(node1)!;
                 const coord2 = allCoords.get(node2)!;
-                const vec: Vector = [coord1[0] - coord2[0], coord1[1] - coord2[1]];
+                const vec: Vector = coord1.map((v, i) => v - coord2[i]);
                 for (const [dir, dirVec] of newEngine.dirMap.entries()) {
-                    if (vec[0] === dirVec[0] && vec[1] === dirVec[1]) {
+                    if (vec.length === dirVec.length && vec.every((v, i) => v === dirVec[i])) {
                          newEngine.addRelation(node1, dir, node2);
                     }
                 }
@@ -138,9 +149,18 @@ const App: React.FC = () => {
         setCurrentRound(1);
         setGameState('playing');
         setFeedback(null);
-        setIsMemorizing(true);
+        
+        const hasMinimal = settings.minimalVertical || settings.minimalTemporal || settings.minimalSize || settings.minimalHierarchy;
+        if (hasMinimal) {
+            setIsShowingLegend(true);
+            setIsMemorizing(false);
+        } else {
+            setIsShowingLegend(false);
+            setIsMemorizing(true);
+            setMemorizationTimeLeft(30);
+        }
+        
         setOldestNode(null);
-        setMemorizationTimeLeft(30);
         setGameStartTime(Date.now());
     }, [settings]);
 
@@ -152,12 +172,12 @@ const App: React.FC = () => {
             const { itemA, itemB, direction } = currentChallenge.statement;
             const vector = engine.getRelativeVector(itemB, itemA);
             const expectedVector = engine.dirMap.get(direction);
-            isActuallyTrue = !!(vector && expectedVector && vector[0] === expectedVector[0] && vector[1] === expectedVector[1]);
+            isActuallyTrue = !!(vector && expectedVector && vector.length === expectedVector.length && vector.every((v, i) => v === expectedVector[i]));
         } else {
             const { itemA1, itemB1, itemA2, itemB2 } = currentChallenge.statement;
             const vector1 = engine.getRelativeVector(itemB1, itemA1);
             const vector2 = engine.getRelativeVector(itemB2, itemA2);
-            isActuallyTrue = !!(vector1 && vector2 && vector1[0] === vector2[0] && vector1[1] === vector2[1]);
+            isActuallyTrue = !!(vector1 && vector2 && vector1.length === vector2.length && vector1.every((v, i) => v === vector2[i]));
         }
         
         const wasCorrect = userAnswer === isActuallyTrue;
@@ -196,9 +216,9 @@ const App: React.FC = () => {
                     if (node1 === node2) continue;
                     const coord1 = allCoords.get(node1)!;
                     const coord2 = allCoords.get(node2)!;
-                    const vec: Vector = [coord1[0] - coord2[0], coord1[1] - coord2[1]];
+                    const vec: Vector = coord1.map((v, i) => v - coord2[i]);
                     for (const [dir, dirVec] of engine.dirMap.entries()) {
-                        if (vec[0] === dirVec[0] && vec[1] === dirVec[1]) {
+                        if (vec.length === dirVec.length && vec.every((v, i) => v === dirVec[i])) {
                              newEngine.addRelation(node1, dir, node2);
                         }
                     }
@@ -214,7 +234,7 @@ const App: React.FC = () => {
             setOldestNode(nextStep.oldestNode);
         }, 800);
 
-    }, [currentChallenge, puzzleState, engine, currentRound, settings, gameBias]);
+    }, [currentChallenge, puzzleState, engine, currentRound, settings, gameBias, score, correctAnswers, timeLeft, saveGameToHistory]);
     
     const handleQuit = () => {
         setGameOverReason('quit');
@@ -253,6 +273,14 @@ const App: React.FC = () => {
                     oldestNode={oldestNode}
                     memorizationTimeLeft={memorizationTimeLeft}
                     voronoiComplexity={settings.voronoiComplexity}
+                    playHighPitch={playHighPitch}
+                    playLowPitch={playLowPitch}
+                    minimalVertical={settings.minimalVertical}
+                    minimalTemporal={settings.minimalTemporal}
+                    minimalSize={settings.minimalSize}
+                    minimalHierarchy={settings.minimalHierarchy}
+                    isShowingLegend={isShowingLegend}
+                    onContinueFromLegend={handleContinueFromLegend}
                 />;
             case 'gameOver':
                 return <GameOverScreen score={score} onGoToMenu={handleGoToMenu} reason={gameOverReason} />;

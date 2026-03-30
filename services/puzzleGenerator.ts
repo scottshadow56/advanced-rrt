@@ -26,12 +26,151 @@ const DISTINCTION_DIRECTIONS: { name: string, vector: Vector }[] = [
     { name: "the Same as", vector: [0, 0] }, { name: "the Opposite of", vector: [1, 0] },
 ];
 
+const SPATIAL_TEMPORAL_DIRECTIONS: { name: string, vector: Vector }[] = (() => {
+    const spatial = [
+        ["North", [0, 1]], ["South", [0, -1]],
+        ["East", [1, 0]], ["West", [-1, 0]],
+        ["North-East", [1, 1]], ["South-East", [1, -1]],
+        ["North-West", [-1, 1]], ["South-West", [-1, -1]]
+    ];
+    const temporal = [
+        ["After", [1]], ["Before", [-1]]
+    ];
+    const res: { name: string, vector: Vector }[] = [];
+    for (const [sName, sVec] of spatial) {
+        for (const [tName, tVec] of temporal) {
+            res.push({ name: `${sName} and ${tName}`, vector: [(sVec as number[])[0], (sVec as number[])[1], (tVec as number[])[0]] });
+        }
+    }
+    return res;
+})();
+
+const SPATIAL_VERTICAL_DIRECTIONS: { name: string, vector: Vector }[] = (() => {
+    const spatial = [
+        ["North", [0, 1]], ["South", [0, -1]],
+        ["East", [1, 0]], ["West", [-1, 0]],
+        ["North-East", [1, 1]], ["South-East", [1, -1]],
+        ["North-West", [-1, 1]], ["South-West", [-1, -1]]
+    ];
+    const vertical = [
+        ["Above", [1]], ["Below", [-1]]
+    ];
+    const res: { name: string, vector: Vector }[] = [];
+    for (const [sName, sVec] of spatial) {
+        for (const [vName, vVec] of vertical) {
+            res.push({ name: `${sName} and ${vName}`, vector: [(sVec as number[])[0], (sVec as number[])[1], (vVec as number[])[0]] });
+        }
+    }
+    return res;
+})();
+
+const SPATIAL_TEMPORAL_VERTICAL_DIRECTIONS: { name: string, vector: Vector }[] = (() => {
+    const spatial = [
+        ["North", [0, 1]], ["South", [0, -1]],
+        ["East", [1, 0]], ["West", [-1, 0]],
+        ["North-East", [1, 1]], ["South-East", [1, -1]],
+        ["North-West", [-1, 1]], ["South-West", [-1, -1]]
+    ];
+    const temporal = [
+        ["After", [1]], ["Before", [-1]]
+    ];
+    const vertical = [
+        ["Above", [1]], ["Below", [-1]]
+    ];
+    const res: { name: string, vector: Vector }[] = [];
+    for (const [sName, sVec] of spatial) {
+        for (const [tName, tVec] of temporal) {
+            for (const [vName, vVec] of vertical) {
+                res.push({ 
+                    name: `${sName} and ${vName} and ${tName}`, 
+                    vector: [(sVec as number[])[0], (sVec as number[])[1], (tVec as number[])[0], (vVec as number[])[0]] 
+                });
+            }
+        }
+    }
+    return res;
+})();
+
+const SPATIAL_TEMPORAL_VERTICAL_SIZE_DIRECTIONS: { name: string, vector: Vector }[] = (() => {
+    const spatial = [
+        ["North", [0, 1]], ["South", [0, -1]],
+        ["East", [1, 0]], ["West", [-1, 0]],
+        ["North-East", [1, 1]], ["South-East", [1, -1]],
+        ["North-West", [-1, 1]], ["South-West", [-1, -1]]
+    ];
+    const temporal = [
+        ["After", [1]], ["Before", [-1]]
+    ];
+    const vertical = [
+        ["Above", [1]], ["Below", [-1]]
+    ];
+    const size = [
+        ["Bigger than", [1]], ["Smaller than", [-1]]
+    ];
+    const res: { name: string, vector: Vector }[] = [];
+    for (const [sName, sVec] of spatial) {
+        for (const [tName, tVec] of temporal) {
+            for (const [vName, vVec] of vertical) {
+                for (const [szName, szVec] of size) {
+                    res.push({ 
+                        name: `${sName} and ${vName} and ${tName} and ${szName}`, 
+                        vector: [(sVec as number[])[0], (sVec as number[])[1], (tVec as number[])[0], (vVec as number[])[0], (szVec as number[])[0]] 
+                    });
+                }
+            }
+        }
+    }
+    return res;
+})();
+
+const SPATIAL_TEMPORAL_VERTICAL_SIZE_HIERARCHY_DIRECTIONS: { name: string, vector: Vector }[] = (() => {
+    const spatial = [
+        ["North", [0, 1]], ["South", [0, -1]],
+        ["East", [1, 0]], ["West", [-1, 0]],
+        ["North-East", [1, 1]], ["South-East", [1, -1]],
+        ["North-West", [-1, 1]], ["South-West", [-1, -1]]
+    ];
+    const temporal = [
+        ["After", [1]], ["Before", [-1]]
+    ];
+    const vertical = [
+        ["Above", [1]], ["Below", [-1]]
+    ];
+    const size = [
+        ["Bigger than", [1]], ["Smaller than", [-1]]
+    ];
+    const hierarchy = [
+        ["Hierarchically Above", [1]], ["Hierarchically Below", [-1]]
+    ];
+    const res: { name: string, vector: Vector }[] = [];
+    for (const [sName, sVec] of spatial) {
+        for (const [tName, tVec] of temporal) {
+            for (const [vName, vVec] of vertical) {
+                for (const [szName, szVec] of size) {
+                    for (const [hName, hVec] of hierarchy) {
+                        res.push({ 
+                            name: `${sName} and ${vName} and ${tName} and ${szName} and ${hName}`, 
+                            vector: [(sVec as number[])[0], (sVec as number[])[1], (tVec as number[])[0], (vVec as number[])[0], (szVec as number[])[0], (hVec as number[])[0]] 
+                        });
+                    }
+                }
+            }
+        }
+    }
+    return res;
+})();
+
 function getDirectionsForMode(mode: Settings['relationMode']): { name: string, vector: Vector }[] {
     switch (mode) {
         case 'vertical': return VERTICAL_DIRECTIONS;
         case 'comparison': return COMPARISON_DIRECTIONS;
         case 'temporal': return TEMPORAL_DIRECTIONS;
         case 'distinction': return DISTINCTION_DIRECTIONS;
+        case 'spatial_temporal': return SPATIAL_TEMPORAL_DIRECTIONS;
+        case 'spatial_vertical': return SPATIAL_VERTICAL_DIRECTIONS;
+        case 'spatial_temporal_vertical': return SPATIAL_TEMPORAL_VERTICAL_DIRECTIONS;
+        case 'spatial_temporal_vertical_size': return SPATIAL_TEMPORAL_VERTICAL_SIZE_DIRECTIONS;
+        case 'spatial_temporal_vertical_size_hierarchy': return SPATIAL_TEMPORAL_VERTICAL_SIZE_HIERARCHY_DIRECTIONS;
         case 'spatial':
         default: return SPATIAL_DIRECTIONS;
     }
@@ -67,7 +206,7 @@ function shuffle<T,>(array: T[]): T[] {
 function getDirectionFromVector(vec: Vector, mode: Settings['relationMode']): string | null {
     const directions = getDirectionsForMode(mode);
     for (const dir of directions) {
-        if (dir.vector[0] === vec[0] && dir.vector[1] === vec[1]) {
+        if (dir.vector.length === vec.length && dir.vector.every((v, i) => v === vec[i])) {
             return dir.name;
         }
     }
@@ -104,7 +243,9 @@ function createConclusion(nodes: string[], coordinates: Map<string, Vector>, las
         // Since min items is 3, nodes will always have at least 2 elements to pick from.
         const [itemB, itemA] = shuffle(nodes).slice(0, 2);
         
-        const vec: Vector = [coordinates.get(itemA)![0] - coordinates.get(itemB)![0], coordinates.get(itemA)![1] - coordinates.get(itemB)![1]];
+        const coordA = coordinates.get(itemA)!;
+        const coordB = coordinates.get(itemB)!;
+        const vec: Vector = coordA.map((v, i) => v - coordB[i]);
         const actualDirection = getDirectionFromVector(vec, mode);
         const shouldBeTrue = Math.random() < targetIsTrueProb;
         
@@ -135,7 +276,9 @@ function createAnalogy(nodes: string[], coordinates: Map<string, Vector>, lastPr
                     if (i === j) continue;
                     const itemA = nodes[i];
                     const itemB = nodes[j];
-                    const vec: Vector = [coordinates.get(itemA)![0] - coordinates.get(itemB)![0], coordinates.get(itemA)![1] - coordinates.get(itemB)![1]];
+                    const coordA = coordinates.get(itemA)!;
+                    const coordB = coordinates.get(itemB)!;
+                    const vec: Vector = coordA.map((v, i) => v - coordB[i]);
                     const vecKey = vec.toString();
                     if (!vectors.has(vecKey)) vectors.set(vecKey, []);
                     vectors.get(vecKey)!.push([itemA, itemB]);
@@ -157,9 +300,13 @@ function createAnalogy(nodes: string[], coordinates: Map<string, Vector>, lastPr
              let vec1: Vector, vec2: Vector;
              do {
                  [itemA1, itemB1, itemA2, itemB2] = shuffle(nodes).slice(0, 4);
-                 vec1 = [coordinates.get(itemA1)![0] - coordinates.get(itemB1)![0], coordinates.get(itemA1)![1] - coordinates.get(itemB1)![1]];
-                 vec2 = [coordinates.get(itemA2)![0] - coordinates.get(itemB2)![0], coordinates.get(itemA2)![1] - coordinates.get(itemB2)![1]];
-             } while (vec1[0] === vec2[0] && vec1[1] === vec2[1]);
+                 const coordA1 = coordinates.get(itemA1)!;
+                 const coordB1 = coordinates.get(itemB1)!;
+                 const coordA2 = coordinates.get(itemA2)!;
+                 const coordB2 = coordinates.get(itemB2)!;
+                 vec1 = coordA1.map((v, i) => v - coordB1[i]);
+                 vec2 = coordA2.map((v, i) => v - coordB2[i]);
+             } while (vec1.length === vec2.length && vec1.every((v, i) => v === vec2[i]));
              statement = { itemA1, itemB1, itemA2, itemB2 };
         }
     } while (usesSameItemsAsPremiseForAnalogy(statement!, lastPremise));
@@ -174,7 +321,7 @@ const getChallenge = (
     lastPremise: Premise | null = null,
     targetIsTrueProb: number = 0.5,
     relationMode: Settings['relationMode'] = 'spatial'
-): Challenge => {
+ ): Challenge => {
     
     let useAnalogy = false;
     if (challengeType === 'analogies') {
@@ -211,7 +358,9 @@ export const generateInitialPuzzle = (
     const premises: Premise[] = [];
     const directions = getDirectionsForMode(relationMode);
     
-    coordinates.set(puzzleNodes[0], [0, 0]);
+    const firstDir = directions[0].vector;
+    const initialCoord = new Array(firstDir.length).fill(0);
+    coordinates.set(puzzleNodes[0], initialCoord);
     const placedNodes = new Set([puzzleNodes[0]]);
     const unplacedNodes = puzzleNodes.slice(1);
 
@@ -224,7 +373,7 @@ export const generateInitialPuzzle = (
         do {
             const randomDir = directions[Math.floor(Math.random() * directions.length)];
             direction = randomDir.name;
-            newCoords = [refCoords[0] + randomDir.vector[0], refCoords[1] + randomDir.vector[1]];
+            newCoords = refCoords.map((v, i) => v + randomDir.vector[i]);
             attempts++;
             // If we're stuck (especially in 1D modes), try a different reference node
             if (attempts > 20) {
@@ -232,9 +381,9 @@ export const generateInitialPuzzle = (
                 const altCoords = coordinates.get(altRef)!;
                 const altDir = directions[Math.floor(Math.random() * directions.length)];
                 direction = altDir.name;
-                newCoords = [altCoords[0] + altDir.vector[0], altCoords[1] + altDir.vector[1]];
+                newCoords = altCoords.map((v, i) => v + altDir.vector[i]);
             }
-        } while (Array.from(coordinates.values()).some(c => c[0] === newCoords[0] && c[1] === newCoords[1]));
+        } while (Array.from(coordinates.values()).some(c => c.length === newCoords.length && c.every((v, i) => v === newCoords[i])));
         coordinates.set(nodeToPlace, newCoords);
         placedNodes.add(nodeToPlace);
         premises.push({ itemA: nodeToPlace, direction, itemB: referenceNode });
@@ -273,16 +422,16 @@ export const advancePuzzle = (
     do {
         const randomDir = directions[Math.floor(Math.random() * directions.length)];
         direction = randomDir.name;
-        newCoords = [refCoords[0] + randomDir.vector[0], refCoords[1] + randomDir.vector[1]];
+        newCoords = refCoords.map((v, i) => v + randomDir.vector[i]);
         attempts++;
         if (attempts > 20) {
             const altRef = shuffle(nodes)[0];
             const altCoords = coordinates.get(altRef)!;
             const altDir = directions[Math.floor(Math.random() * directions.length)];
             direction = altDir.name;
-            newCoords = [altCoords[0] + altDir.vector[0], altCoords[1] + altDir.vector[1]];
+            newCoords = altCoords.map((v, i) => v + altDir.vector[i]);
         }
-    } while (Array.from(coordinates.values()).some(c => c[0] === newCoords[0] && c[1] === newCoords[1]));
+    } while (Array.from(coordinates.values()).some(c => c.length === newCoords.length && c.every((v, i) => v === newCoords[i])));
 
     const newPremise: Premise = { itemA: newNode, direction, itemB: referenceNode };
     nodes.push(newNode);
