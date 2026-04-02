@@ -256,7 +256,7 @@ const App: React.FC = () => {
             if (wasCorrect) setCurrentRound(r => r + 1);
             setFeedback(null);
             setOldestNode(nextStep.oldestNode);
-        }, wasCorrect ? 800 : 3000); // Give more time to read explanation if incorrect
+        }, 800); 
 
     }, [currentChallenge, puzzleState, premises, engine, currentRound, settings, gameBias, nextShiftRound, score, correctAnswers, timeLeft, saveGameToHistory]);
     

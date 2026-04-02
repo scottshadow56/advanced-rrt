@@ -699,7 +699,8 @@ export const advancePuzzle = (
     const directions = getDirectionsForMode(relationMode);
 
     const oldestNode = nodes.shift()!;
-    coordinates.delete(oldestNode);
+    // We keep the coordinates for ghost nodes to maintain logical connections
+    // coordinates.delete(oldestNode); 
 
     let newNode: string;
     do {
@@ -728,10 +729,8 @@ export const advancePuzzle = (
     nodes.push(newNode);
     coordinates.set(newNode, newCoords);
 
-    // We only keep the premises that involve the current nodes
-    const updatedPremises = [...currentPremises, newPremise].filter(p => 
-        nodes.includes(p.itemA) && nodes.includes(p.itemB)
-    );
+    // We keep all premises to maintain logical connections through "ghost" nodes
+    const updatedPremises = [...currentPremises, newPremise];
 
     const newChallenge = getChallenge(nodes, coordinates, updatedPremises, challengeType, newPremise, targetIsTrueProb, relationMode, interferenceRatio);
 

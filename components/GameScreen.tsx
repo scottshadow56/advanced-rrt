@@ -326,21 +326,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
                     <X className="w-24 h-24 text-red-400 mb-6"/>
                     <div className="space-y-4">
                         <h3 className="text-2xl font-bold text-white">Incorrect</h3>
-                        {challenge?.explanation && (
-                            <p className="text-slate-300 text-lg leading-relaxed max-w-md mx-auto italic">
-                                {challenge.explanation}
-                            </p>
-                        )}
-                        {challenge?.difficulty && (
-                            <div className="flex items-center justify-center gap-2 text-slate-500 font-mono text-sm uppercase tracking-widest">
-                                <span>Logical Depth: {challenge.difficulty}</span>
-                                <div className="flex gap-1">
-                                    {Array.from({ length: Math.min(5, challenge.difficulty) }).map((_, i) => (
-                                        <div key={i} className="w-2 h-2 rounded-full bg-indigo-500" />
-                                    ))}
-                                </div>
-                            </div>
-                        )}
                     </div>
                 </>
             )}
