@@ -23,9 +23,9 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ currentSettings, onSave
         switch (mode) {
             case 'spatial_temporal': return '2D + Temporal';
             case 'spatial_vertical': return '2D + Vertical';
-            case 'spatial_temporal_vertical': return '4D (Spatial+Temp+Vert)';
-            case 'spatial_temporal_vertical_size': return '5D (Spatial+Temp+Vert+Size)';
-            case 'spatial_temporal_vertical_size_hierarchy': return '6D (Spatial+Temp+Vert+Size+Hierarchy)';
+            case 'spatial_temporal_vertical': return '4D';
+            case 'spatial_temporal_vertical_size': return '5D';
+            case 'spatial_temporal_vertical_size_hierarchy': return '6D';
             default: return mode;
         }
     };
@@ -230,20 +230,21 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ currentSettings, onSave
                 </div>
 
                 <div>
-                    <label className="flex justify-between items-center text-lg text-slate-300">
-                        <span>Developer Mode</span>
-                        <button
-                            onClick={() => setSettings(s => ({ ...s, devMode: !s.devMode }))}
-                            aria-pressed={settings.devMode}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 ${
-                                settings.devMode ? 'bg-indigo-500' : 'bg-slate-700'
-                            }`}
-                        >
-                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                settings.devMode ? 'translate-x-6' : 'translate-x-1'
-                            }`} />
-                        </button>
+                    <label htmlFor="interferenceRatio" className="flex justify-between items-center text-lg text-slate-300">
+                        <span>Interference (Fake Conclusions)</span>
+                        <span className="font-bold text-cyan-400">{settings.interferenceRatio}x</span>
                     </label>
+                    <input
+                        id="interferenceRatio"
+                        type="range"
+                        min="0"
+                        max="5"
+                        step="1"
+                        value={settings.interferenceRatio}
+                        onChange={(e) => setSettings(s => ({ ...s, interferenceRatio: Number(e.target.value) }))}
+                        className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                    />
+                    <p className="text-xs text-slate-500 mt-1 italic">Controls the frequency of sophisticated false conclusions where spatial dimensions match but higher dimensions are wrong.</p>
                 </div>
             </div>
 

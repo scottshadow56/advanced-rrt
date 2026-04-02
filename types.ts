@@ -9,13 +9,13 @@ export interface Settings {
     totalRounds: number;
     challengeType: 'conclusions' | 'analogies' | 'mixed';
     wordLength: number;
-    devMode: boolean;
     stimuliType: 'words' | 'voronoi';
     relationMode: 'spatial' | 'vertical' | 'comparison' | 'temporal' | 'distinction' | 'spatial_temporal' | 'spatial_vertical' | 'spatial_temporal_vertical' | 'spatial_temporal_vertical_size' | 'spatial_temporal_vertical_size_hierarchy';
     minimalVertical: boolean;
     minimalTemporal: boolean;
     minimalSize: boolean;
     minimalHierarchy: boolean;
+    interferenceRatio: number;
 }
 
 export interface HistoryEntry {
@@ -51,8 +51,12 @@ export type Challenge = {
     type: 'conclusion';
     statement: Conclusion;
     isTrue: boolean;
+    difficulty?: number;
+    explanation?: string;
 } | {
     type: 'analogy';
     statement: Analogy;
     isTrue: boolean;
+    difficulty?: number;
+    explanation?: string;
 };

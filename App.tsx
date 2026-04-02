@@ -21,6 +21,8 @@ const App: React.FC = () => {
     const [isShowingLegend, setIsShowingLegend] = useState(false);
     const [memorizationTimeLeft, setMemorizationTimeLeft] = useState(30);
     const [gameBias, setGameBias] = useState(0.5);
+    const [nextShiftRound, setNextShiftRound] = useState(1);
+    const [answerHistory, setAnswerHistory] = useState<boolean[]>([]);
 
     const { playCorrect, playIncorrect, playHighPitch, playLowPitch } = useSound();
 
@@ -30,13 +32,13 @@ const App: React.FC = () => {
         totalRounds: 10,
         challengeType: 'mixed',
         wordLength: 3,
-        devMode: false,
         stimuliType: 'words',
         relationMode: 'spatial',
         minimalVertical: false,
         minimalTemporal: false,
         minimalSize: false,
         minimalHierarchy: false,
+        interferenceRatio: 2,
     });
     
     const [engine, setEngine] = useState(() => new RelationalEngine('spatial'));
@@ -44,6 +46,7 @@ const App: React.FC = () => {
     const [puzzleState, setPuzzleState] = useState<{ nodes: string[]; coordinates: Map<string, Vector> } | null>(null);
     const [lastPremise, setLastPremise] = useState<Premise | null>(null);
     const [initialPremises, setInitialPremises] = useState<Premise[] | null>(null);
+    const [premises, setPremises] = useState<Premise[]>([]);
     const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
     const [oldestNode, setOldestNode] = useState<string | null>(null);
     const [gameStartTime, setGameStartTime] = useState<number | null>(null);
@@ -87,7 +90,7 @@ const App: React.FC = () => {
     const handleContinueFromMemorization = useCallback(() => {
         if (!puzzleState) return;
 
-        const nextStep = advancePuzzle(puzzleState.nodes, puzzleState.coordinates, settings.challengeType, settings.wordLength, gameBias, settings.relationMode, settings.stimuliType);
+        const nextStep = advancePuzzle(puzzleState.nodes, puzzleState.coordinates, premises, settings.challengeType, settings.wordLength, gameBias, settings.relationMode, settings.stimuliType, settings.interferenceRatio);
         
         const newEngine = new RelationalEngine(settings.relationMode);
         const allNodes = nextStep.updatedNodes;
@@ -108,12 +111,13 @@ const App: React.FC = () => {
         
         setEngine(newEngine);
         setPuzzleState({ nodes: nextStep.updatedNodes, coordinates: nextStep.updatedCoordinates });
+        setPremises(nextStep.updatedPremises);
         setCurrentChallenge(nextStep.newChallenge);
         setLastPremise(nextStep.newPremise);
         setInitialPremises(null);
         setIsMemorizing(false);
         setOldestNode(nextStep.oldestNode);
-    }, [puzzleState, settings.challengeType, settings.wordLength, gameBias, settings.relationMode, settings.stimuliType]);
+    }, [puzzleState, premises, settings.challengeType, settings.wordLength, gameBias, settings.relationMode, settings.stimuliType]);
 
     useEffect(() => {
         if (gameState !== 'playing' || !isMemorizing) return;
@@ -131,15 +135,22 @@ const App: React.FC = () => {
     }, [gameState, isMemorizing, memorizationTimeLeft, handleContinueFromMemorization]);
 
     const handleStart = useCallback(() => {
-        const bias = Math.random() < 0.5 ? 0.65 : 0.35;
-        setGameBias(bias);
+        const initialRound = 1;
+        const biases = [0.5, 0.25, 0.75];
+        const bias = biases[Math.floor(Math.random() * biases.length)];
+        const trialsUntilNextShift = Math.floor(Math.random() * 6) + 5; // 5-10
         
-        const initialPuzzle = generateInitialPuzzle(settings.initialPremises, settings.challengeType, settings.wordLength, bias, settings.relationMode, settings.stimuliType);
+        setGameBias(bias);
+        setNextShiftRound(initialRound + trialsUntilNextShift);
+        setAnswerHistory([]);
+        
+        const initialPuzzle = generateInitialPuzzle(settings.initialPremises, settings.challengeType, settings.wordLength, bias, settings.relationMode, settings.stimuliType, settings.interferenceRatio);
         const newEngine = new RelationalEngine(settings.relationMode);
         initialPuzzle.premises.forEach(p => newEngine.addRelation(p.itemA, p.direction, p.itemB));
 
         setEngine(newEngine);
         setPuzzleState({ nodes: initialPuzzle.nodes, coordinates: initialPuzzle.coordinates });
+        setPremises(initialPuzzle.premises);
         setCurrentChallenge(null);
         setLastPremise(null); 
         setInitialPremises(initialPuzzle.premises);
@@ -167,21 +178,12 @@ const App: React.FC = () => {
     const handleAnswer = useCallback((userAnswer: boolean) => {
         if (!currentChallenge || !puzzleState) return;
 
-        let isActuallyTrue: boolean;
-        if (currentChallenge.type === 'conclusion') {
-            const { itemA, itemB, direction } = currentChallenge.statement;
-            const vector = engine.getRelativeVector(itemB, itemA);
-            const expectedVector = engine.dirMap.get(direction);
-            isActuallyTrue = !!(vector && expectedVector && vector.length === expectedVector.length && vector.every((v, i) => v === expectedVector[i]));
-        } else {
-            const { itemA1, itemB1, itemA2, itemB2 } = currentChallenge.statement;
-            const vector1 = engine.getRelativeVector(itemB1, itemA1);
-            const vector2 = engine.getRelativeVector(itemB2, itemA2);
-            isActuallyTrue = !!(vector1 && vector2 && vector1.length === vector2.length && vector1.every((v, i) => v === vector2[i]));
-        }
-        
+        const isActuallyTrue = currentChallenge.isTrue;
         const wasCorrect = userAnswer === isActuallyTrue;
         setFeedback(wasCorrect ? 'correct' : 'incorrect');
+
+        const newHistory = [...answerHistory, isActuallyTrue].slice(-4);
+        setAnswerHistory(newHistory);
 
         if (wasCorrect) {
             playCorrect();
@@ -206,7 +208,28 @@ const App: React.FC = () => {
                  // Handled by useEffect, but good to be safe
             }
 
-            const nextStep = advancePuzzle(puzzleState.nodes, puzzleState.coordinates, settings.challengeType, settings.wordLength, gameBias, settings.relationMode, settings.stimuliType);
+            // Dynamic base bias: shifts randomly every 5-10 rounds
+            // We are generating for the NEXT round
+            const nextRoundNum = currentRound + 1;
+            let baseBias = gameBias;
+
+            if (nextRoundNum >= nextShiftRound) {
+                const biases = [0.5, 0.25, 0.75];
+                // Try to pick a different bias if possible
+                const otherBiases = biases.filter(b => b !== gameBias);
+                baseBias = otherBiases[Math.floor(Math.random() * otherBiases.length)];
+                
+                const trialsUntilNextShift = Math.floor(Math.random() * 6) + 5; // 5-10
+                setNextShiftRound(nextRoundNum + trialsUntilNextShift);
+            }
+
+            const nextBias = newHistory.length === 4 && newHistory.every(v => v === newHistory[0]) 
+                ? (newHistory[0] ? 0 : 1) 
+                : baseBias;
+
+            setGameBias(nextBias);
+
+            const nextStep = advancePuzzle(puzzleState.nodes, puzzleState.coordinates, premises, settings.challengeType, settings.wordLength, nextBias, settings.relationMode, settings.stimuliType, settings.interferenceRatio);
             const newEngine = new RelationalEngine(settings.relationMode);
             const allNodes = nextStep.updatedNodes;
             const allCoords = nextStep.updatedCoordinates;
@@ -227,14 +250,15 @@ const App: React.FC = () => {
 
             setEngine(newEngine);
             setPuzzleState({ nodes: nextStep.updatedNodes, coordinates: nextStep.updatedCoordinates });
+            setPremises(nextStep.updatedPremises);
             setCurrentChallenge(nextStep.newChallenge);
             setLastPremise(nextStep.newPremise);
             if (wasCorrect) setCurrentRound(r => r + 1);
             setFeedback(null);
             setOldestNode(nextStep.oldestNode);
-        }, 800);
+        }, wasCorrect ? 800 : 3000); // Give more time to read explanation if incorrect
 
-    }, [currentChallenge, puzzleState, engine, currentRound, settings, gameBias, score, correctAnswers, timeLeft, saveGameToHistory]);
+    }, [currentChallenge, puzzleState, premises, engine, currentRound, settings, gameBias, nextShiftRound, score, correctAnswers, timeLeft, saveGameToHistory]);
     
     const handleQuit = () => {
         setGameOverReason('quit');
@@ -268,7 +292,6 @@ const App: React.FC = () => {
                     totalRounds={settings.totalRounds}
                     isMemorizing={isMemorizing}
                     onContinue={handleContinueFromMemorization}
-                    devMode={settings.devMode}
                     puzzleState={puzzleState}
                     oldestNode={oldestNode}
                     memorizationTimeLeft={memorizationTimeLeft}

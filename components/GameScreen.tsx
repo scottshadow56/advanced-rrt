@@ -2,7 +2,6 @@
 import React, { useEffect } from 'react';
 import type { Premise, Challenge, Vector } from '../types';
 import { Timer, Check, X, Star, LogOut, Play } from 'lucide-react';
-import DevGrid from './DevGrid';
 import Stimulus from './Stimulus';
 
 interface GameScreenProps {
@@ -18,7 +17,6 @@ interface GameScreenProps {
     totalRounds: number;
     isMemorizing: boolean;
     onContinue: () => void;
-    devMode: boolean;
     puzzleState: { nodes: string[]; coordinates: Map<string, Vector> } | null;
     oldestNode: string | null;
     memorizationTimeLeft: number;
@@ -33,7 +31,7 @@ interface GameScreenProps {
     onContinueFromLegend: () => void;
 }
 
-const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onAnswer, feedback, lastPremise, initialPremises, onQuit, currentRound, totalRounds, isMemorizing, onContinue, devMode, puzzleState, oldestNode, memorizationTimeLeft, voronoiComplexity, playHighPitch, playLowPitch, minimalVertical, minimalTemporal, minimalSize, minimalHierarchy, isShowingLegend, onContinueFromLegend }) => {
+const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onAnswer, feedback, lastPremise, initialPremises, onQuit, currentRound, totalRounds, isMemorizing, onContinue, puzzleState, oldestNode, memorizationTimeLeft, voronoiComplexity, playHighPitch, playLowPitch, minimalVertical, minimalTemporal, minimalSize, minimalHierarchy, isShowingLegend, onContinueFromLegend }) => {
     const timerColor = timeLeft <= 10 ? 'text-red-500' : timeLeft <= 20 ? 'text-yellow-400' : 'text-cyan-400';
     const memorizationTimerColor = memorizationTimeLeft <= 10 ? 'text-red-500' : memorizationTimeLeft <= 20 ? 'text-yellow-400' : 'text-cyan-400';
 
@@ -145,13 +143,12 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
             scaleStyle = "scale-90 inline-block origin-center opacity-80 mx-0.5";
         }
 
-        // Hierarchy Logic (Border/Outline or just keep audio)
-        // For now, let's add a subtle border for hierarchy if minimal
+        // Hierarchy Logic (Underline Style)
         let hierarchyStyle = "";
         if (hierarchy === 'above') {
-            hierarchyStyle = "border-b-2 border-dashed border-yellow-400/50 pb-0.5";
+            hierarchyStyle = "decoration-dashed underline";
         } else if (hierarchy === 'below') {
-            hierarchyStyle = "border-b-2 border-dotted border-slate-600 pb-0.5";
+            hierarchyStyle = "decoration-dotted underline";
         }
 
         // If everything is minimal and no spatial text left, use a placeholder or the original text
@@ -321,20 +318,34 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
     )}
     
     {feedback && (
-                 <div className={`absolute inset-0 bg-slate-800/80 backdrop-blur-sm flex items-center justify-center rounded-lg animate-pop-in`}>
-                     {feedback === 'correct' ? <Check className="w-32 h-32 text-green-400"/> : <X className="w-32 h-32 text-red-400"/> }
-                 </div>
+        <div className={`absolute inset-0 bg-slate-800/95 backdrop-blur-md flex flex-col items-center justify-center rounded-lg animate-pop-in p-8 text-center`}>
+            {feedback === 'correct' ? (
+                <Check className="w-32 h-32 text-green-400 mb-4"/>
+            ) : (
+                <>
+                    <X className="w-24 h-24 text-red-400 mb-6"/>
+                    <div className="space-y-4">
+                        <h3 className="text-2xl font-bold text-white">Incorrect</h3>
+                        {challenge?.explanation && (
+                            <p className="text-slate-300 text-lg leading-relaxed max-w-md mx-auto italic">
+                                {challenge.explanation}
+                            </p>
+                        )}
+                        {challenge?.difficulty && (
+                            <div className="flex items-center justify-center gap-2 text-slate-500 font-mono text-sm uppercase tracking-widest">
+                                <span>Logical Depth: {challenge.difficulty}</span>
+                                <div className="flex gap-1">
+                                    {Array.from({ length: Math.min(5, challenge.difficulty) }).map((_, i) => (
+                                        <div key={i} className="w-2 h-2 rounded-full bg-indigo-500" />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </>
             )}
-
-            {devMode && puzzleState && !isMemorizing && (
-                <DevGrid
-                    nodes={puzzleState.nodes}
-                    coordinates={puzzleState.coordinates}
-                    lastPremise={lastPremise}
-                    oldestNode={oldestNode}
-                    voronoiComplexity={voronoiComplexity}
-                />
-            )}
+        </div>
+    )}
         </div>
     );
 };

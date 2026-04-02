@@ -213,114 +213,402 @@ function getDirectionFromVector(vec: Vector, mode: Settings['relationMode']): st
     return null;
 }
 
-function usesSameItemsAsPremise(conclusion: Conclusion, premise: Premise | null): boolean {
+function areItemsSameAsPremise(itemA: string, itemB: string, premise: Premise | null): boolean {
     if (!premise) return false;
-    const conclusionItems = [conclusion.itemA, conclusion.itemB].sort();
+    const items = [itemA, itemB].sort();
     const premiseItems = [premise.itemA, premise.itemB].sort();
-    return conclusionItems[0] === premiseItems[0] && conclusionItems[1] === premiseItems[1];
+    return items[0] === premiseItems[0] && items[1] === premiseItems[1];
 }
 
-function usesSameItemsAsPremiseForAnalogy(analogy: Analogy, premise: Premise | null): boolean {
-    if (!premise) return false;
-    const premiseItems = [premise.itemA, premise.itemB].sort();
-    const analogyPair1 = [analogy.itemA1, analogy.itemB1].sort();
-    if (analogyPair1[0] === premiseItems[0] && analogyPair1[1] === premiseItems[1]) {
-        return true;
+function getShortestPath(itemA: string, itemB: string, premises: Premise[]): Premise[] | null {
+    const adj: Map<string, { to: string, premise: Premise }[]> = new Map();
+    for (const p of premises) {
+        if (!adj.has(p.itemA)) adj.set(p.itemA, []);
+        if (!adj.has(p.itemB)) adj.set(p.itemB, []);
+        adj.get(p.itemA)!.push({ to: p.itemB, premise: p });
+        adj.get(p.itemB)!.push({ to: p.itemA, premise: p });
     }
-    const analogyPair2 = [analogy.itemA2, analogy.itemB2].sort();
-    if (analogyPair2[0] === premiseItems[0] && analogyPair2[1] === premiseItems[1]) {
-        return true;
+
+    const queue: { node: string, path: Premise[] }[] = [{ node: itemA, path: [] }];
+    const visited = new Set([itemA]);
+
+    while (queue.length > 0) {
+        const { node, path } = queue.shift()!;
+        if (node === itemB) return path;
+
+        const neighbors = adj.get(node) || [];
+        for (const { to, premise } of neighbors) {
+            if (!visited.has(to)) {
+                visited.add(to);
+                queue.push({ node: to, path: [...path, premise] });
+            }
+        }
     }
-    return false;
+    return null;
 }
 
-function createConclusion(nodes: string[], coordinates: Map<string, Vector>, lastPremise: Premise | null = null, targetIsTrueProb: number = 0.5, mode: Settings['relationMode'] = 'spatial'): { statement: Conclusion, isTrue: boolean } {
-    let statement: Conclusion;
-    let isTrue: boolean;
+function getExplanation(itemA: string, itemB: string, premises: Premise[], isTrue: boolean, actualDirection: string | null, statedDirection: string): string {
+    const path = getShortestPath(itemA, itemB, premises);
+    if (!path) return "No direct logical connection found.";
+
+    let explanation = "Reasoning chain: ";
+    let currentItem = itemA;
+    
+    for (const p of path) {
+        if (p.itemA === currentItem) {
+            explanation += `${p.itemA} is ${p.direction} ${p.itemB}. `;
+            currentItem = p.itemB;
+        } else {
+            // We need to invert the direction
+            // For simplicity, we just state the premise as is
+            explanation += `${p.itemA} is ${p.direction} ${p.itemB}. `;
+            currentItem = p.itemA;
+        }
+    }
+
+    if (isTrue) {
+        explanation += `Therefore, ${itemA} is indeed ${statedDirection} ${itemB}.`;
+    } else {
+        explanation += `Therefore, ${itemA} is actually ${actualDirection || 'not in that relationship'} ${itemB}, not ${statedDirection}.`;
+    }
+    return explanation;
+}
+
+type DimensionState = 'truthy' | 'tricky' | 'falsy';
+
+function pickDimensionState(): DimensionState {
+    const rand = Math.random();
+    if (rand < 0.6) return 'truthy';
+    if (rand < 0.9) return 'tricky';
+    return 'falsy';
+}
+
+function getDimensionValue(actualValue: number, state: DimensionState): number {
+    switch (state) {
+        case 'truthy': return actualValue;
+        case 'tricky': return -actualValue;
+        case 'falsy': return -actualValue; // For binary, tricky and falsy are same. For spatial, we handle differently.
+        default: return actualValue;
+    }
+}
+
+function generateTrueConclusion(itemA: string, itemB: string, actualDirection: string): Conclusion {
+    return { itemA, direction: actualDirection, itemB };
+}
+
+function generateSophisticatedFalseConclusion(itemA: string, itemB: string, vec: Vector, actualDirection: string, mode: Settings['relationMode'], directions: { name: string, vector: Vector }[]): Conclusion {
+    const multiDimModes: Settings['relationMode'][] = [
+        'spatial_temporal', 'spatial_vertical', 'spatial_temporal_vertical', 
+        'spatial_temporal_vertical_size', 'spatial_temporal_vertical_size_hierarchy'
+    ];
+
+    if (multiDimModes.includes(mode)) {
+        // Sophisticated: Spatial is correct, but other dimensions have interference
+        let attempts = 0;
+        while (attempts < 20) {
+            const falseVec = [...vec];
+            let changed = false;
+            
+            // Indices 2+ are extra dimensions
+            for (let i = 2; i < falseVec.length; i++) {
+                const state = pickDimensionState();
+                if (state !== 'truthy') {
+                    falseVec[i] = getDimensionValue(vec[i], state);
+                    changed = true;
+                }
+            }
+            
+            // Force at least one change if none occurred
+            if (!changed && falseVec.length > 2) {
+                const idx = Math.floor(Math.random() * (falseVec.length - 2)) + 2;
+                falseVec[idx] = -vec[idx];
+                changed = true;
+            }
+            
+            if (changed) {
+                const falseDirName = getDirectionFromVector(falseVec, mode);
+                if (falseDirName && falseDirName !== actualDirection) {
+                    return { itemA, direction: falseDirName, itemB };
+                }
+            }
+            attempts++;
+        }
+    }
+
+    // Fallback for single dim or if multi-dim logic failed: use opposite or random different
+    const oppositeVec = vec.map(v => -v);
+    const oppositeDir = getDirectionFromVector(oppositeVec, mode);
+    if (oppositeDir && oppositeDir !== actualDirection) {
+        return { itemA, direction: oppositeDir, itemB };
+    }
+    
+    const allDirs = directions.map(d => d.name).filter(d => d !== actualDirection);
+    return { itemA, direction: shuffle(allDirs)[0] || directions[0].name, itemB };
+}
+
+function generateObviousFalseConclusion(itemA: string, itemB: string, vec: Vector, actualDirection: string, mode: Settings['relationMode'], directions: { name: string, vector: Vector }[]): Conclusion {
+    const allDirs = directions.map(d => d.name);
+    
+    if (mode === 'spatial' || mode.startsWith('spatial_')) {
+        // Obvious: Spatial part is wrong (indices 0 and 1)
+        const obviousDirs = directions.filter(d => {
+            return d.vector[0] !== vec[0] || d.vector[1] !== vec[1];
+        }).map(d => d.name);
+        
+        if (obviousDirs.length > 0) {
+            return { itemA, direction: shuffle(obviousDirs)[0], itemB };
+        }
+    }
+    
+    // For non-spatial or fallback: pick something that is not the actual and not the opposite
+    const oppositeVec = vec.map(v => -v);
+    const oppositeDir = getDirectionFromVector(oppositeVec, mode);
+    const randomDirs = allDirs.filter(d => d !== actualDirection && d !== oppositeDir);
+    
+    return { itemA, direction: shuffle(randomDirs.length > 0 ? randomDirs : allDirs.filter(d => d !== actualDirection))[0] || allDirs[0], itemB };
+}
+
+function createConclusion(nodes: string[], coordinates: Map<string, Vector>, premises: Premise[], lastPremise: Premise | null = null, targetIsTrueProb: number = 0.5, mode: Settings['relationMode'] = 'spatial', interferenceRatio: number = 2): { statement: Conclusion, isTrue: boolean, difficulty: number, explanation: string } {
+    let statement: Conclusion | undefined;
+    let isTrue: boolean = false;
+    let actualDirection: string | null = null;
     const directions = getDirectionsForMode(mode);
 
-    do {
-        // Since min items is 3, nodes will always have at least 2 elements to pick from.
-        const [itemB, itemA] = shuffle(nodes).slice(0, 2);
+    let attempts = 0;
+    while (attempts < 100) {
+        const shuffledNodes = shuffle(nodes);
+        const itemA = shuffledNodes[0];
+        // If the first two items are the same as the last premise, pick the third item instead (if available)
+        // to avoid "looping" for this specific check.
+        const itemB = (areItemsSameAsPremise(itemA, shuffledNodes[1], lastPremise) && nodes.length > 2)
+            ? shuffledNodes[2]
+            : shuffledNodes[1];
         
+        const path = getShortestPath(itemA, itemB, premises);
+        if (!path) {
+            attempts++;
+            continue;
+        }
+
         const coordA = coordinates.get(itemA)!;
         const coordB = coordinates.get(itemB)!;
         const vec: Vector = coordA.map((v, i) => v - coordB[i]);
-        const actualDirection = getDirectionFromVector(vec, mode);
-        const shouldBeTrue = Math.random() < targetIsTrueProb;
+        actualDirection = getDirectionFromVector(vec, mode);
         
-        if (shouldBeTrue && actualDirection) {
-            statement = { itemA, direction: actualDirection, itemB };
+        if (!actualDirection) {
+            attempts++;
+            continue;
+        }
+
+        const rand = Math.random();
+        let type: 'true' | 'sophisticated' | 'obvious';
+        
+        if (rand < targetIsTrueProb) {
+            statement = generateTrueConclusion(itemA, itemB, actualDirection);
             isTrue = true;
+            type = 'true';
         } else {
-            const allDirs = directions.map(d => d.name);
-            const falseDirection = shuffle(allDirs).find(d => d !== actualDirection) || allDirs[0];
-            statement = { itemA, direction: falseDirection, itemB };
+            // False: Weight between Sophisticated and Obvious using interferenceRatio
+            const sophisticatedProb = (interferenceRatio / 5) * 0.9;
+            if (Math.random() < sophisticatedProb) {
+                statement = generateSophisticatedFalseConclusion(itemA, itemB, vec, actualDirection, mode, directions);
+                type = 'sophisticated';
+            } else {
+                statement = generateObviousFalseConclusion(itemA, itemB, vec, actualDirection, mode, directions);
+                type = 'obvious';
+            }
             isTrue = false;
         }
-    } while (usesSameItemsAsPremise(statement, lastPremise));
+
+        if (nodes.length <= 2) break;
+        break;
+    }
     
-    return { statement, isTrue };
-}
+    // Fallback if loop failed to find a valid statement
+    if (!statement) {
+        // Try to find ANY connected pair that doesn't use the same items as the last premise
+        let found = false;
+        const shuffledA = shuffle(nodes);
+        for (const a of shuffledA) {
+            const shuffledB = shuffle(nodes);
+            for (const b of shuffledB) {
+                if (a === b) continue;
+                
+                // Check if this pair is the same as the last premise
+                if (areItemsSameAsPremise(a, b, lastPremise) && nodes.length > 2) continue;
 
-function createAnalogy(nodes: string[], coordinates: Map<string, Vector>, lastPremise: Premise | null = null, targetIsTrueProb: number = 0.5): { statement: Analogy, isTrue: boolean } {
-    let statement: Analogy;
-    let isTrue: boolean;
-
-    do {
-        isTrue = Math.random() < targetIsTrueProb;
-        if (isTrue) {
-            const vectors: Map<string, [string, string][]> = new Map();
-            for (let i = 0; i < nodes.length; i++) {
-                for (let j = 0; j < nodes.length; j++) {
-                    if (i === j) continue;
-                    const itemA = nodes[i];
-                    const itemB = nodes[j];
-                    const coordA = coordinates.get(itemA)!;
-                    const coordB = coordinates.get(itemB)!;
-                    const vec: Vector = coordA.map((v, i) => v - coordB[i]);
-                    const vecKey = vec.toString();
-                    if (!vectors.has(vecKey)) vectors.set(vecKey, []);
-                    vectors.get(vecKey)!.push([itemA, itemB]);
+                const path = getShortestPath(a, b, premises);
+                if (path) {
+                    const vec = coordinates.get(a)!.map((v, i) => v - coordinates.get(b)![i]);
+                    actualDirection = getDirectionFromVector(vec, mode);
+                    if (actualDirection) {
+                        statement = { itemA: a, direction: actualDirection, itemB: b };
+                        isTrue = true;
+                        found = true;
+                        break;
+                    }
                 }
             }
-            const validPairs = Array.from(vectors.values()).filter(v => v.length >= 2);
-            
-            if (validPairs.length > 0) {
-                const pairSet = shuffle(validPairs)[0];
-                const [[itemA1, itemB1], [itemA2, itemB2]] = shuffle(pairSet).slice(0, 2);
-                statement = { itemA1, itemB1, itemA2, itemB2 };
-            } else {
-                 isTrue = false; // Cannot create a true analogy, force false
-            }
+            if (found) break;
         }
         
-        if (!isTrue) {
-             let [itemA1, itemB1, itemA2, itemB2] = shuffle(nodes).slice(0, 4);
-             let vec1: Vector, vec2: Vector;
-             do {
-                 [itemA1, itemB1, itemA2, itemB2] = shuffle(nodes).slice(0, 4);
-                 const coordA1 = coordinates.get(itemA1)!;
-                 const coordB1 = coordinates.get(itemB1)!;
-                 const coordA2 = coordinates.get(itemA2)!;
-                 const coordB2 = coordinates.get(itemB2)!;
-                 vec1 = coordA1.map((v, i) => v - coordB1[i]);
-                 vec2 = coordA2.map((v, i) => v - coordB2[i]);
-             } while (vec1.length === vec2.length && vec1.every((v, i) => v === vec2[i]));
-             statement = { itemA1, itemB1, itemA2, itemB2 };
+        // Absolute fallback (should not happen in normal play)
+        if (!statement) {
+            const [itemA, itemB] = nodes.slice(0, 2);
+            const vec = coordinates.get(itemA)!.map((v, i) => v - coordinates.get(itemB)![i]);
+            actualDirection = getDirectionFromVector(vec, mode) || directions[0].name;
+            statement = { itemA, direction: actualDirection, itemB };
+            isTrue = true;
         }
-    } while (usesSameItemsAsPremiseForAnalogy(statement!, lastPremise));
+    }
+    
+    const path = getShortestPath(statement.itemA, statement.itemB, premises);
+    const difficulty = path ? path.length : 1;
+    const explanation = getExplanation(statement.itemA, statement.itemB, premises, isTrue, actualDirection, statement.direction);
 
-    return { statement: statement!, isTrue };
+    return { statement, isTrue, difficulty, explanation };
+}
+
+function generateTrueAnalogy(nodes: string[], coordinates: Map<string, Vector>, lastPremise: Premise | null, premises: Premise[]): Analogy | null {
+    const vectors: Map<string, [string, string][]> = new Map();
+    for (let i = 0; i < nodes.length; i++) {
+        for (let j = 0; j < nodes.length; j++) {
+            if (i === j) continue;
+            const itemA = nodes[i];
+            const itemB = nodes[j];
+            const coordA = coordinates.get(itemA)!;
+            const coordB = coordinates.get(itemB)!;
+            const vec: Vector = coordA.map((v, i) => v - coordB[i]);
+            const vecKey = vec.toString();
+            if (!vectors.has(vecKey)) vectors.set(vecKey, []);
+            vectors.get(vecKey)!.push([itemA, itemB]);
+        }
+    }
+    
+    const validPairs = Array.from(vectors.values()).filter(v => v.length >= 2);
+    if (validPairs.length === 0) return null;
+
+    let attempts = 0;
+    while (attempts < 50) {
+        const pairSet = shuffle(validPairs)[0];
+        const [[itemA1, itemB1], [itemA2, itemB2]] = shuffle(pairSet).slice(0, 2);
+        const analogy = { itemA1, itemB1, itemA2, itemB2 };
+        
+        // Check connectivity for both pairs
+        if (getShortestPath(itemA1, itemB1, premises) && getShortestPath(itemA2, itemB2, premises)) {
+            return analogy;
+        }
+        attempts++;
+    }
+    return null;
+}
+
+function generateSophisticatedFalseAnalogy(nodes: string[], coordinates: Map<string, Vector>, lastPremise: Premise | null, premises: Premise[]): Analogy | null {
+    // Sophisticated: Spatial part matches, but extra dimensions differ
+    let attempts = 0;
+    while (attempts < 100) {
+        const [itemA1, itemB1, itemA2, itemB2] = shuffle(nodes).slice(0, 4);
+        
+        // Check connectivity
+        if (!getShortestPath(itemA1, itemB1, premises) || !getShortestPath(itemA2, itemB2, premises)) {
+            attempts++;
+            continue;
+        }
+
+        const coordA1 = coordinates.get(itemA1)!;
+        const coordB1 = coordinates.get(itemB1)!;
+        const coordA2 = coordinates.get(itemA2)!;
+        const coordB2 = coordinates.get(itemB2)!;
+        const vec1 = coordA1.map((v, i) => v - coordB1[i]);
+        const vec2 = coordA2.map((v, i) => v - coordB2[i]);
+
+        // Check if spatial part (indices 0, 1) matches but overall vector doesn't
+        if (vec1.length > 2 && vec1[0] === vec2[0] && vec1[1] === vec2[1]) {
+            if (vec1.some((v, i) => v !== vec2[i])) {
+                return { itemA1, itemB1, itemA2, itemB2 };
+            }
+        }
+        attempts++;
+    }
+    return null;
+}
+
+function generateObviousFalseAnalogy(nodes: string[], coordinates: Map<string, Vector>, lastPremise: Premise | null, premises: Premise[]): Analogy {
+    let attempts = 0;
+    while (attempts < 100) {
+        const [itemA1, itemB1, itemA2, itemB2] = shuffle(nodes).slice(0, 4);
+
+        // Check connectivity
+        if (!getShortestPath(itemA1, itemB1, premises) || !getShortestPath(itemA2, itemB2, premises)) {
+            attempts++;
+            continue;
+        }
+
+        const coordA1 = coordinates.get(itemA1)!;
+        const coordB1 = coordinates.get(itemB1)!;
+        const coordA2 = coordinates.get(itemA2)!;
+        const coordB2 = coordinates.get(itemB2)!;
+        const vec1 = coordA1.map((v, i) => v - coordB1[i]);
+        const vec2 = coordA2.map((v, i) => v - coordB2[i]);
+
+        // Obvious: Spatial part is different
+        if (vec1[0] !== vec2[0] || vec1[1] !== vec2[1]) {
+            return { itemA1, itemB1, itemA2, itemB2 };
+        }
+        attempts++;
+    }
+    // Absolute fallback
+    const [itemA1, itemB1, itemA2, itemB2] = nodes.slice(0, 4);
+    return { itemA1, itemB1, itemA2, itemB2 };
+}
+
+function createAnalogy(nodes: string[], coordinates: Map<string, Vector>, premises: Premise[], lastPremise: Premise | null = null, targetIsTrueProb: number = 0.5, interferenceRatio: number = 2): { statement: Analogy, isTrue: boolean, difficulty: number, explanation: string } {
+    let statement: Analogy | null = null;
+    let isTrue: boolean = false;
+
+    const rand = Math.random();
+    if (rand < targetIsTrueProb) {
+        statement = generateTrueAnalogy(nodes, coordinates, lastPremise, premises);
+        if (statement) {
+            isTrue = true;
+        } else {
+            // If we wanted a true one but couldn't find it, try to find a false one but keep the target probability logic
+            // In practice, we should almost always find a true one if nodes >= 4
+            statement = generateSophisticatedFalseAnalogy(nodes, coordinates, lastPremise, premises) || generateObviousFalseAnalogy(nodes, coordinates, lastPremise, premises);
+            isTrue = false;
+        }
+    } else {
+        // False: Weight between Sophisticated and Obvious using interferenceRatio
+        const sophisticatedProb = (interferenceRatio / 5) * 0.9;
+        if (Math.random() < sophisticatedProb) {
+            statement = generateSophisticatedFalseAnalogy(nodes, coordinates, lastPremise, premises);
+        }
+        
+        if (!statement) {
+            statement = generateObviousFalseAnalogy(nodes, coordinates, lastPremise, premises);
+        }
+        isTrue = false;
+    }
+
+    const path1 = getShortestPath(statement.itemA1, statement.itemB1, premises);
+    const path2 = getShortestPath(statement.itemA2, statement.itemB2, premises);
+    const difficulty = (path1?.length || 1) + (path2?.length || 1);
+    const explanation = isTrue 
+        ? `The relationship between ${statement.itemA1} and ${statement.itemB1} is identical to the relationship between ${statement.itemA2} and ${statement.itemB2}.`
+        : `The relationship between ${statement.itemA1} and ${statement.itemB1} is different from the relationship between ${statement.itemA2} and ${statement.itemB2}.`;
+
+    return { statement, isTrue, difficulty, explanation };
 }
 
 const getChallenge = (
     nodes: string[], 
     coordinates: Map<string, Vector>, 
+    premises: Premise[],
     challengeType: Settings['challengeType'], 
     lastPremise: Premise | null = null,
     targetIsTrueProb: number = 0.5,
-    relationMode: Settings['relationMode'] = 'spatial'
+    relationMode: Settings['relationMode'] = 'spatial',
+    interferenceRatio: number = 2
  ): Challenge => {
     
     let useAnalogy = false;
@@ -331,11 +619,11 @@ const getChallenge = (
     }
 
     if (useAnalogy && nodes.length >= 4) {
-        const { statement, isTrue } = createAnalogy(nodes, coordinates, lastPremise, targetIsTrueProb);
-        return { type: 'analogy', statement, isTrue };
+        const { statement, isTrue, difficulty, explanation } = createAnalogy(nodes, coordinates, premises, lastPremise, targetIsTrueProb, interferenceRatio);
+        return { type: 'analogy', statement, isTrue, difficulty, explanation };
     } else {
-        const { statement, isTrue } = createConclusion(nodes, coordinates, lastPremise, targetIsTrueProb, relationMode);
-        return { type: 'conclusion', statement, isTrue };
+        const { statement, isTrue, difficulty, explanation } = createConclusion(nodes, coordinates, premises, lastPremise, targetIsTrueProb, relationMode, interferenceRatio);
+        return { type: 'conclusion', statement, isTrue, difficulty, explanation };
     }
 };
 
@@ -346,7 +634,8 @@ export const generateInitialPuzzle = (
     wordLength: number = 3, 
     targetIsTrueProb: number = 0.5,
     relationMode: Settings['relationMode'] = 'spatial',
-    stimuliType: Settings['stimuliType'] = 'words'
+    stimuliType: Settings['stimuliType'] = 'words',
+    interferenceRatio: number = 2
 ): { premises: Premise[], challenge: Challenge, coordinates: Map<string, Vector>, nodes: string[] } => {
     const words = new Set<string>();
     while (words.size < numNodes) {
@@ -390,18 +679,20 @@ export const generateInitialPuzzle = (
     }
 
     const lastInitialPremise = premises.length > 0 ? premises[premises.length - 1] : null;
-    const challenge = getChallenge(puzzleNodes, coordinates, challengeType, lastInitialPremise, targetIsTrueProb, relationMode);
+    const challenge = getChallenge(puzzleNodes, coordinates, premises, challengeType, lastInitialPremise, targetIsTrueProb, relationMode, interferenceRatio);
     return { premises, challenge, coordinates, nodes: puzzleNodes };
 };
 
 export const advancePuzzle = (
     currentNodes: string[], 
     currentCoords: Map<string, Vector>, 
+    currentPremises: Premise[],
     challengeType: Settings['challengeType'] = 'mixed', 
     wordLength: number = 3, 
     targetIsTrueProb: number = 0.5,
     relationMode: Settings['relationMode'] = 'spatial',
-    stimuliType: Settings['stimuliType'] = 'words'
+    stimuliType: Settings['stimuliType'] = 'words',
+    interferenceRatio: number = 2
 ) => {
     const nodes = [...currentNodes];
     const coordinates = new Map(currentCoords);
@@ -437,7 +728,12 @@ export const advancePuzzle = (
     nodes.push(newNode);
     coordinates.set(newNode, newCoords);
 
-    const newChallenge = getChallenge(nodes, coordinates, challengeType, newPremise, targetIsTrueProb, relationMode);
+    // We only keep the premises that involve the current nodes
+    const updatedPremises = [...currentPremises, newPremise].filter(p => 
+        nodes.includes(p.itemA) && nodes.includes(p.itemB)
+    );
 
-    return { newPremise, newChallenge, updatedNodes: nodes, updatedCoordinates: coordinates, oldestNode };
+    const newChallenge = getChallenge(nodes, coordinates, updatedPremises, challengeType, newPremise, targetIsTrueProb, relationMode, interferenceRatio);
+
+    return { newPremise, newChallenge, updatedNodes: nodes, updatedCoordinates: coordinates, updatedPremises, oldestNode };
 };
