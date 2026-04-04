@@ -11,9 +11,9 @@ interface StartScreenProps {
 const StartScreen: React.FC<StartScreenProps> = ({ onStart, onShowSettings, onShowHistory }) => (
     <div className="text-center p-8 bg-slate-800/50 rounded-lg border border-slate-700 flex flex-col items-center animate-fade-in">
         <BrainCircuit className="w-16 h-16 text-cyan-400" />
-        <h1 className="text-4xl sm:text-5xl font-bold text-white tracking-tight mt-4">Relational Reasoning</h1>
+        <h1 className="text-4xl sm:text-5xl font-bold text-white tracking-tight mt-4">RRT (Updating)</h1>
         <p className="mt-4 text-lg text-slate-400 max-w-md">
-            A timed puzzle to test your spatial deduction skills. Keep the map in your head and answer as fast as you can.
+            Keep the map in your head and answer before the clock runs out.
         </p>
         <div className="flex flex-col sm:flex-row items-center gap-4 mt-8">
             <button
