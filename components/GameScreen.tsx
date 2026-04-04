@@ -237,14 +237,15 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
     
     return (
         <div className="p-6 bg-slate-800/50 rounded-lg border border-slate-700 w-full animate-fade-in relative">
-            <button onClick={onQuit} className="absolute top-4 left-4 text-slate-500 hover:text-red-500 transition-colors" aria-label="Quit Game">
-                <LogOut className="w-6 h-6" />
-            </button>
-            
             <div className="flex justify-between items-center pb-4 border-b border-slate-700">
-                <div className="flex items-center gap-2 text-2xl font-bold">
-                    <Star className="w-6 h-6 text-yellow-400" />
-                    <span>{score}</span>
+                <div className="flex items-center gap-4">
+                    <button onClick={onQuit} className="text-slate-500 hover:text-red-500 transition-colors" aria-label="Quit Game">
+                        <LogOut className="w-6 h-6" />
+                    </button>
+                    <div className="flex items-center gap-2 text-2xl font-bold">
+                        <Star className="w-6 h-6 text-yellow-400" />
+                        <span>{score}</span>
+                    </div>
                 </div>
                  <div className="font-bold text-slate-400">
                     {isShowingLegend ? 'Legend' : isMemorizing ? 'Memorize!' : <>Round {currentRound} <span className="text-xs">/ {totalRounds}</span></>}

@@ -50,6 +50,7 @@ const App: React.FC = () => {
     const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
     const [oldestNode, setOldestNode] = useState<string | null>(null);
     const [gameStartTime, setGameStartTime] = useState<number | null>(null);
+    const [recentPairs, setRecentPairs] = useState<string[][]>([]);
 
     const saveGameToHistory = useCallback((finalScore: number, finalCorrect: number, rounds: number) => {
         const duration = gameStartTime ? Date.now() - gameStartTime : 0;
@@ -90,7 +91,7 @@ const App: React.FC = () => {
     const handleContinueFromMemorization = useCallback(() => {
         if (!puzzleState) return;
 
-        const nextStep = advancePuzzle(puzzleState.nodes, puzzleState.coordinates, premises, settings.challengeType, settings.wordLength, gameBias, settings.relationMode, settings.stimuliType, settings.interferenceRatio);
+        const nextStep = advancePuzzle(puzzleState.nodes, puzzleState.coordinates, premises, settings.challengeType, settings.wordLength, gameBias, settings.relationMode, settings.stimuliType, settings.interferenceRatio, recentPairs);
         
         const newEngine = new RelationalEngine(settings.relationMode);
         const allNodes = nextStep.updatedNodes;
@@ -145,6 +146,11 @@ const App: React.FC = () => {
         setAnswerHistory([]);
         
         const initialPuzzle = generateInitialPuzzle(settings.initialPremises, settings.challengeType, settings.wordLength, bias, settings.relationMode, settings.stimuliType, settings.interferenceRatio);
+        
+        // Initialize recent pairs with initial premises
+        const initialRecentPairs = initialPuzzle.premises.map(p => [p.itemA, p.itemB].sort());
+        setRecentPairs(initialRecentPairs.slice(-8));
+
         const newEngine = new RelationalEngine(settings.relationMode);
         initialPuzzle.premises.forEach(p => newEngine.addRelation(p.itemA, p.direction, p.itemB));
 
@@ -173,6 +179,7 @@ const App: React.FC = () => {
         
         setOldestNode(null);
         setGameStartTime(Date.now());
+        setRecentPairs([]);
     }, [settings]);
 
     const handleAnswer = useCallback((userAnswer: boolean) => {
@@ -203,23 +210,43 @@ const App: React.FC = () => {
                 return;
             }
             
-            if (!wasCorrect && timeLeft <= 10 && currentRound >= settings.totalRounds) {
-                 // Special case where incorrect answer ends game due to time
-                 // Handled by useEffect, but good to be safe
-            }
+            // Update recent pairs queue with the challenge just verified and the last premise shown
+            const verifiedPair = currentChallenge.type === 'conclusion'
+                ? [currentChallenge.statement.itemA, currentChallenge.statement.itemB].sort()
+                : [currentChallenge.statement.itemA1, currentChallenge.statement.itemB1].sort();
+            
+            const lastPremisePair = lastPremise ? [lastPremise.itemA, lastPremise.itemB].sort() : null;
+            
+            let updatedRecentPairs: string[][] = [];
+            setRecentPairs(prev => {
+                let next = [...prev];
+                
+                const updateQueue = (pair: string[]) => {
+                    const pairStr = JSON.stringify(pair);
+                    // Remove if exists to move to top
+                    next = next.filter(p => JSON.stringify(p) !== pairStr);
+                    next.push(pair);
+                };
+
+                updateQueue(verifiedPair);
+                if (lastPremisePair) {
+                    updateQueue(lastPremisePair);
+                }
+                
+                updatedRecentPairs = next.slice(-8);
+                return updatedRecentPairs;
+            });
 
             // Dynamic base bias: shifts randomly every 5-10 rounds
-            // We are generating for the NEXT round
             const nextRoundNum = currentRound + 1;
             let baseBias = gameBias;
 
             if (nextRoundNum >= nextShiftRound) {
                 const biases = [0.5, 0.25, 0.75];
-                // Try to pick a different bias if possible
                 const otherBiases = biases.filter(b => b !== gameBias);
                 baseBias = otherBiases[Math.floor(Math.random() * otherBiases.length)];
                 
-                const trialsUntilNextShift = Math.floor(Math.random() * 6) + 5; // 5-10
+                const trialsUntilNextShift = Math.floor(Math.random() * 6) + 5;
                 setNextShiftRound(nextRoundNum + trialsUntilNextShift);
             }
 
@@ -229,7 +256,8 @@ const App: React.FC = () => {
 
             setGameBias(nextBias);
 
-            const nextStep = advancePuzzle(puzzleState.nodes, puzzleState.coordinates, premises, settings.challengeType, settings.wordLength, nextBias, settings.relationMode, settings.stimuliType, settings.interferenceRatio);
+            // Use the updatedRecentPairs for the next generation
+            const nextStep = advancePuzzle(puzzleState.nodes, puzzleState.coordinates, premises, settings.challengeType, settings.wordLength, nextBias, settings.relationMode, settings.stimuliType, settings.interferenceRatio, updatedRecentPairs);
             const newEngine = new RelationalEngine(settings.relationMode);
             const allNodes = nextStep.updatedNodes;
             const allCoords = nextStep.updatedCoordinates;
@@ -253,12 +281,13 @@ const App: React.FC = () => {
             setPremises(nextStep.updatedPremises);
             setCurrentChallenge(nextStep.newChallenge);
             setLastPremise(nextStep.newPremise);
+            
             if (wasCorrect) setCurrentRound(r => r + 1);
             setFeedback(null);
             setOldestNode(nextStep.oldestNode);
         }, 800); 
 
-    }, [currentChallenge, puzzleState, premises, engine, currentRound, settings, gameBias, nextShiftRound, score, correctAnswers, timeLeft, saveGameToHistory]);
+    }, [currentChallenge, puzzleState, premises, engine, currentRound, settings, gameBias, nextShiftRound, score, correctAnswers, timeLeft, saveGameToHistory, recentPairs]);
     
     const handleQuit = () => {
         setGameOverReason('quit');
