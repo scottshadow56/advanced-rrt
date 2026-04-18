@@ -407,9 +407,11 @@ function createConclusion(nodes: string[], coordinates: Map<string, Vector>, pre
     let actualDirection: string | null = null;
     const directions = getDirectionsForMode(mode);
 
-    // Use all items from premises for inferences as requested
     const allItems = Array.from(new Set(premises.flatMap(p => [p.itemA, p.itemB])));
     const inferences = getAllInferences(allItems, coordinates, mode);
+    
+    // Nodes are the "active" nodes.
+    const activeNodesSet = new Set(nodes);
     
     const keys = Array.from(inferences.keys()).filter(key => {
         const [itemA, itemB] = key.split('|');
@@ -423,9 +425,18 @@ function createConclusion(nodes: string[], coordinates: Map<string, Vector>, pre
         
         return true;
     });
+
+    const activeKeys = keys.filter(key => {
+        const [itemA, itemB] = key.split('|');
+        return activeNodesSet.has(itemA) && activeNodesSet.has(itemB);
+    });
+
+    // We decide whether to stick to the priority (active) list
+    const useOnlyActive = activeKeys.length > 0 && Math.random() < 0.9;
+    const candidateKeys = useOnlyActive ? activeKeys : keys;
     
-    // Prioritize transitive inferences (path length > 1)
-    const inferredKeys = keys.filter(key => {
+    // Prioritize transitive inferences (path length > 1) within the selected candidates
+    const inferredKeys = candidateKeys.filter(key => {
         const [itemA, itemB] = key.split('|');
         const path = getShortestPath(itemA, itemB, premises);
         return path && path.length > 1;
@@ -433,7 +444,7 @@ function createConclusion(nodes: string[], coordinates: Map<string, Vector>, pre
     
     const pool = inferredKeys.length > 0 && Math.random() < 0.8 
         ? inferredKeys 
-        : (keys.length > 0 ? keys : null);
+        : (candidateKeys.length > 0 ? candidateKeys : null);
     
     let randomKey: string;
     if (pool) {
@@ -516,6 +527,7 @@ function createConclusion(nodes: string[], coordinates: Map<string, Vector>, pre
 
 function generateTrueAnalogy(nodes: string[], coordinates: Map<string, Vector>, lastPremise: Premise | null, premises: Premise[], recentPairs: string[][] = []): Analogy | null {
     const allItems = Array.from(new Set(premises.flatMap(p => [p.itemA, p.itemB])));
+    const activeNodesSet = new Set(nodes);
     const vectors: Map<string, [string, string][]> = new Map();
     for (let i = 0; i < allItems.length; i++) {
         for (let j = 0; j < allItems.length; j++) {
@@ -525,6 +537,8 @@ function generateTrueAnalogy(nodes: string[], coordinates: Map<string, Vector>, 
             const coordA = coordinates.get(itemA)!;
             const coordB = coordinates.get(itemB)!;
             const vec: Vector = coordA.map((v, i) => v - coordB[i]);
+            // Exclude items at same coordinate
+            if (vec.every(v => v === 0)) continue;
             const vecKey = vec.toString();
             if (!vectors.has(vecKey)) vectors.set(vecKey, []);
             vectors.get(vecKey)!.push([itemA, itemB]);
@@ -532,11 +546,7 @@ function generateTrueAnalogy(nodes: string[], coordinates: Map<string, Vector>, 
     }
     
     const validPairs = Array.from(vectors.entries())
-        .filter(([vecKey, v]) => {
-            if (v.length < 2) return false;
-            const vec = vecKey.split(',').map(Number);
-            return vec.some(val => val !== 0);
-        })
+        .filter(([_, v]) => v.length >= 2)
         .map(([_, v]) => v);
     
     if (validPairs.length === 0) return null;
@@ -555,25 +565,34 @@ function generateTrueAnalogy(nodes: string[], coordinates: Map<string, Vector>, 
         const pairSet = shuffle(validPairs)[0];
         const shuffledPairs = shuffle(pairSet);
         
-        // Try to find two pairs that are both inferences
+        // Strategy: Attempt to prioritize active nodes (from the FIFO list)
+        // If nodes.length is small (e.g. 3), we'll necessarily pull from allItems eventually.
+        const activePairs = shuffledPairs.filter(p => activeNodesSet.has(p[0]) && activeNodesSet.has(p[1]));
+        const semiActivePairs = shuffledPairs.filter(p => activeNodesSet.has(p[0]) || activeNodesSet.has(p[1]));
+        
         let pair1: [string, string] | null = null;
         let pair2: [string, string] | null = null;
+
+        const randStrategy = Math.random();
         
-        const inferredPairs = shuffledPairs.filter(p => isInference(p[0], p[1]));
-        const directPairs = shuffledPairs.filter(p => !isInference(p[0], p[1]));
-        
-        if (inferredPairs.length >= 2 && Math.random() < 0.8) {
-            [pair1, pair2] = inferredPairs.slice(0, 2);
-        } else if (inferredPairs.length >= 1 && directPairs.length >= 1 && Math.random() < 0.6) {
-            pair1 = inferredPairs[0];
-            pair2 = directPairs[0];
+        if (activePairs.length >= 2 && randStrategy < 0.8) {
+             [pair1, pair2] = activePairs.slice(0, 2);
+        } else if (semiActivePairs.length >= 2 && randStrategy < 0.95) {
+             [pair1, pair2] = semiActivePairs.slice(0, 2);
         } else {
-            [pair1, pair2] = shuffledPairs.slice(0, 2);
+             [pair1, pair2] = shuffledPairs.slice(0, 2);
         }
 
         if (!pair1 || !pair2) {
             attempts++;
             continue;
+        }
+
+        // Further filtering: prefer inferences
+        const inferredPairs = [pair1, pair2].filter(p => isInference(p[0], p[1]));
+        if (inferredPairs.length < 2 && Math.random() < 0.6) {
+             // Maybe try again to find inferred ones if we're feeling picky
+             // but let's keep it simple for now to avoid infinite loops
         }
 
         const [itemA1, itemB1] = pair1;
@@ -610,11 +629,19 @@ function generateTrueAnalogy(nodes: string[], coordinates: Map<string, Vector>, 
     }
     
     // If we only found recent pairs, fallbackAnalogy will be the oldest one found
+    if (!fallbackAnalogy) {
+        const shuffledAll = shuffle(allItems);
+        if (shuffledAll.length >= 4) {
+             const [fA1, fB1, fA2, fB2] = shuffledAll.slice(0, 4);
+             return { itemA1: fA1, itemB1: fB1, itemA2: fA2, itemB2: fB2 };
+        }
+    }
     return fallbackAnalogy;
 }
 
 function generateSophisticatedFalseAnalogy(nodes: string[], coordinates: Map<string, Vector>, lastPremise: Premise | null, premises: Premise[], interferenceRatio: number, recentPairs: string[][] = []): Analogy | null {
     const allItems = Array.from(new Set(premises.flatMap(p => [p.itemA, p.itemB])));
+    const activeNodesSet = new Set(nodes);
     // Sophisticated: Spatial part matches, but extra dimensions differ
     let attempts = 0;
     let fallbackAnalogy: Analogy | null = null;
@@ -626,8 +653,29 @@ function generateSophisticatedFalseAnalogy(nodes: string[], coordinates: Map<str
     };
 
     while (attempts < 200) {
-        const shuffled = shuffle(allItems);
-        const [itemA1, itemB1, itemA2, itemB2] = shuffled.slice(0, 4);
+        let selected: string[];
+        const rand = Math.random();
+        
+        if (activeNodesSet.size >= 4 && rand < 0.8) {
+            selected = shuffle(Array.from(activeNodesSet)).slice(0, 4);
+        } else if (activeNodesSet.size >= 2 && rand < 0.95) {
+            const active = shuffle(Array.from(activeNodesSet)).slice(0, 2);
+            const others = shuffle(allItems.filter(i => !activeNodesSet.has(i))).slice(0, 2);
+            if (others.length < 2) {
+                selected = shuffle(allItems).slice(0, 4);
+            } else {
+                selected = shuffle([...active, ...others]);
+            }
+        } else {
+            selected = shuffle(allItems).slice(0, 4);
+        }
+
+        if (selected.length < 4) {
+            attempts++;
+            continue;
+        }
+
+        const [itemA1, itemB1, itemA2, itemB2] = selected;
         
         // Prioritize inferred pairs for consistency
         if (Math.random() < 0.7 && (!isInference(itemA1, itemB1) || !isInference(itemA2, itemB2))) {
@@ -690,11 +738,19 @@ function generateSophisticatedFalseAnalogy(nodes: string[], coordinates: Map<str
     }
     
     // If we only found recent pairs, fallbackAnalogy will be the oldest one found
+    if (!fallbackAnalogy) {
+        const shuffledAll = shuffle(allItems);
+        if (shuffledAll.length >= 4) {
+             const [fA1, fB1, fA2, fB2] = shuffledAll.slice(0, 4);
+             return { itemA1: fA1, itemB1: fB1, itemA2: fA2, itemB2: fB2 };
+        }
+    }
     return fallbackAnalogy;
 }
 
 function generateObviousFalseAnalogy(nodes: string[], coordinates: Map<string, Vector>, lastPremise: Premise | null, premises: Premise[], recentPairs: string[][] = []): Analogy {
     const allItems = Array.from(new Set(premises.flatMap(p => [p.itemA, p.itemB])));
+    const activeNodesSet = new Set(nodes);
     let attempts = 0;
     let fallbackAnalogy: Analogy | null = null;
     let oldestIndex = Infinity;
@@ -705,8 +761,29 @@ function generateObviousFalseAnalogy(nodes: string[], coordinates: Map<string, V
     };
 
     while (attempts < 200) {
-        const shuffled = shuffle(allItems);
-        const [itemA1, itemB1, itemA2, itemB2] = shuffled.slice(0, 4);
+        let selected: string[];
+        const rand = Math.random();
+        
+        if (activeNodesSet.size >= 4 && rand < 0.8) {
+            selected = shuffle(Array.from(activeNodesSet)).slice(0, 4);
+        } else if (activeNodesSet.size >= 2 && rand < 0.95) {
+            const active = shuffle(Array.from(activeNodesSet)).slice(0, 2);
+            const others = shuffle(allItems.filter(i => !activeNodesSet.has(i))).slice(0, 2);
+            if (others.length < 2) {
+                selected = shuffle(allItems).slice(0, 4);
+            } else {
+                selected = shuffle([...active, ...others]);
+            }
+        } else {
+            selected = shuffle(allItems).slice(0, 4);
+        }
+
+        if (selected.length < 4) {
+            attempts++;
+            continue;
+        }
+
+        const [itemA1, itemB1, itemA2, itemB2] = selected;
 
         // Prioritize inferred pairs for consistency
         if (Math.random() < 0.7 && (!isInference(itemA1, itemB1) || !isInference(itemA2, itemB2))) {
@@ -822,7 +899,8 @@ const getChallenge = (
         useAnalogy = Math.random() < 0.5;
     }
 
-    if (useAnalogy && nodes.length >= 4) {
+    const allItems = Array.from(new Set(premises.flatMap(p => [p.itemA, p.itemB])));
+    if (useAnalogy && allItems.length >= 4) {
         const { statement, isTrue, difficulty, explanation } = createAnalogy(nodes, coordinates, premises, lastPremise, targetIsTrueProb, interferenceRatio, recentPairs);
         return { type: 'analogy', statement, isTrue, difficulty, explanation };
     } else {
