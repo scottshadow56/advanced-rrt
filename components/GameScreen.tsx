@@ -141,7 +141,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
         if (relevance === 'more') {
             relevanceStyle = "font-black tracking-tight";
         } else if (relevance === 'less') {
-            relevanceStyle = "blur-[1.2px] font-thin";
+            relevanceStyle = "blur-[0.8px] font-thin";
         }
 
         // Hierarchy Logic (Underline Style)
