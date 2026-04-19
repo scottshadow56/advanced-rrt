@@ -17,15 +17,15 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ currentSettings, onSave
 
     const challengeTypeOptions: Settings['challengeType'][] = ['conclusions', 'analogies', 'mixed'];
     const stimuliTypeOptions: Settings['stimuliType'][] = ['words', 'voronoi'];
-    const relationModeOptions: Settings['relationMode'][] = ['spatial', 'vertical', 'comparison', 'temporal', 'distinction', 'spatial_temporal', 'spatial_vertical', 'spatial_temporal_vertical', 'spatial_temporal_vertical_size', 'spatial_temporal_vertical_size_hierarchy'];
+    const relationModeOptions: Settings['relationMode'][] = ['spatial', 'vertical', 'comparison', 'temporal', 'distinction', 'spatial_temporal', 'spatial_vertical', 'spatial_temporal_vertical', 'spatial_temporal_vertical_relevance', 'spatial_temporal_vertical_relevance_hierarchy'];
 
     const getModeLabel = (mode: Settings['relationMode']) => {
         switch (mode) {
             case 'spatial_temporal': return '2D + Temporal';
             case 'spatial_vertical': return '2D + Vertical';
             case 'spatial_temporal_vertical': return '4D';
-            case 'spatial_temporal_vertical_size': return '5D';
-            case 'spatial_temporal_vertical_size_hierarchy': return '6D';
+            case 'spatial_temporal_vertical_relevance': return '5D';
+            case 'spatial_temporal_vertical_relevance_hierarchy': return '6D';
             default: return mode;
         }
     };
@@ -199,16 +199,16 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ currentSettings, onSave
                     </label>
 
                     <label className="flex justify-between items-center text-lg text-slate-300">
-                        <span>Size (Scale)</span>
+                        <span>Relevance (Opacity)</span>
                         <button
-                            onClick={() => setSettings(s => ({ ...s, minimalSize: !s.minimalSize }))}
-                            aria-pressed={settings.minimalSize}
+                            onClick={() => setSettings(s => ({ ...s, minimalRelevance: !s.minimalRelevance }))}
+                            aria-pressed={settings.minimalRelevance}
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 ${
-                                settings.minimalSize ? 'bg-indigo-500' : 'bg-slate-700'
+                                settings.minimalRelevance ? 'bg-indigo-500' : 'bg-slate-700'
                             }`}
                         >
                             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                settings.minimalSize ? 'translate-x-6' : 'translate-x-1'
+                                settings.minimalRelevance ? 'translate-x-6' : 'translate-x-1'
                             }`} />
                         </button>
                     </label>

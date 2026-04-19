@@ -25,13 +25,13 @@ interface GameScreenProps {
     playLowPitch: () => void;
     minimalVertical: boolean;
     minimalTemporal: boolean;
-    minimalSize: boolean;
+    minimalRelevance: boolean;
     minimalHierarchy: boolean;
     isShowingLegend: boolean;
     onContinueFromLegend: () => void;
 }
 
-const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onAnswer, feedback, lastPremise, initialPremises, onQuit, currentRound, totalRounds, isMemorizing, onContinue, puzzleState, oldestNode, memorizationTimeLeft, voronoiComplexity, playHighPitch, playLowPitch, minimalVertical, minimalTemporal, minimalSize, minimalHierarchy, isShowingLegend, onContinueFromLegend }) => {
+const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onAnswer, feedback, lastPremise, initialPremises, onQuit, currentRound, totalRounds, isMemorizing, onContinue, puzzleState, oldestNode, memorizationTimeLeft, voronoiComplexity, playHighPitch, playLowPitch, minimalVertical, minimalTemporal, minimalRelevance, minimalHierarchy, isShowingLegend, onContinueFromLegend }) => {
     const timerColor = timeLeft <= 10 ? 'text-red-500' : timeLeft <= 20 ? 'text-yellow-400' : 'text-cyan-400';
     const memorizationTimerColor = memorizationTimeLeft <= 10 ? 'text-red-500' : memorizationTimeLeft <= 20 ? 'text-yellow-400' : 'text-cyan-400';
 
@@ -59,7 +59,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
         const parts = direction.split(' and ');
         let vertical: 'above' | 'below' | null = null;
         let temporal: 'after' | 'before' | null = null;
-        let size: 'bigger' | 'smaller' | null = null;
+        let relevance: 'more' | 'less' | null = null;
         let hierarchy: 'above' | 'below' | null = null;
 
         const filteredParts = parts.filter(p => {
@@ -79,12 +79,12 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
                 temporal = 'before';
                 return false;
             }
-            if (minimalSize && p === 'Bigger than') {
-                size = 'bigger';
+            if (minimalRelevance && p === 'More relevant than') {
+                relevance = 'more';
                 return false;
             }
-            if (minimalSize && p === 'Smaller than') {
-                size = 'smaller';
+            if (minimalRelevance && p === 'Less relevant than') {
+                relevance = 'less';
                 return false;
             }
             if (minimalHierarchy && p === 'Hierarchically Above') {
@@ -136,11 +136,12 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
             lineStyle = ""; // No underline if no vertical/temporal minimal
         }
 
-        // Size Logic (Scale)
-        if (size === 'bigger') {
-            scaleStyle = "scale-110 inline-block origin-center mx-1 my-0.5";
-        } else if (size === 'smaller') {
-            scaleStyle = "scale-90 inline-block origin-center opacity-80 mx-0.5";
+        // Relevance Logic (Weight & Blur)
+        let relevanceStyle = "";
+        if (relevance === 'more') {
+            relevanceStyle = "font-black tracking-tight";
+        } else if (relevance === 'less') {
+            relevanceStyle = "blur-[1.2px] font-thin";
         }
 
         // Hierarchy Logic (Underline Style)
@@ -153,14 +154,14 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
 
         // If everything is minimal and no spatial text left, use a placeholder or the original text
         const finalContent = baseText || direction;
-        const isSpatialOnly = !vertical && !temporal && !size && !hierarchy;
+        const isSpatialOnly = !vertical && !temporal && !relevance && !hierarchy;
         
         if (isSpatialOnly) {
             return <span className="text-purple-400">{direction}</span>;
         }
 
         return (
-            <span className={`${textStyle} ${lineStyle} ${shadowStyle} ${scaleStyle} ${hierarchyStyle} transition-all duration-300`}>
+            <span className={`${textStyle} ${lineStyle} ${shadowStyle} ${relevanceStyle} ${hierarchyStyle} transition-all duration-300`}>
                 {finalContent}
             </span>
         );
@@ -204,9 +205,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
             legendItems.push({ label: 'After', style: "text-green-400 underline decoration-green-400 decoration-2 underline-offset-4" });
             legendItems.push({ label: 'Before', style: "text-red-400 underline decoration-red-400 decoration-2 underline-offset-4" });
         }
-        if (minimalSize) {
-            legendItems.push({ label: 'Bigger', style: "scale-110 inline-block origin-center mx-1 my-0.5 text-slate-100" });
-            legendItems.push({ label: 'Smaller', style: "scale-90 inline-block origin-center opacity-80 mx-0.5 text-slate-100" });
+        if (minimalRelevance) {
+            legendItems.push({ label: 'More Relevant', style: "font-black tracking-tight text-slate-100" });
+            legendItems.push({ label: 'Less Relevant', style: "blur-[1.2px] font-thin text-slate-100" });
         }
         if (minimalHierarchy) {
             legendItems.push({ label: 'H. Above', style: "border-b-2 border-dashed border-yellow-400/50 pb-0.5 text-slate-100" });

@@ -67,8 +67,8 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ onBack }) => {
         spatial_temporal: '#f87171', // red
         spatial_vertical: '#60a5fa', // blue
         spatial_temporal_vertical: '#fb923c', // orange
-        spatial_temporal_vertical_size: '#a855f7', // purple
-        spatial_temporal_vertical_size_hierarchy: '#10b981', // emerald
+        spatial_temporal_vertical_relevance: '#a855f7', // purple
+        spatial_temporal_vertical_relevance_hierarchy: '#10b981', // emerald
     };
 
     const CustomDot = (props: any) => {
@@ -175,8 +175,8 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ onBack }) => {
                     <option value="spatial_temporal">2D + Temporal</option>
                     <option value="spatial_vertical">2D + Vertical</option>
                     <option value="spatial_temporal_vertical">4D (Spatial+Temp+Vert)</option>
-                    <option value="spatial_temporal_vertical_size">5D (Spatial+Temp+Vert+Size)</option>
-                    <option value="spatial_temporal_vertical_size_hierarchy">6D (Spatial+Temp+Vert+Size+Hierarchy)</option>
+                    <option value="spatial_temporal_vertical_relevance">5D (Spatial+Temp+Vert+Rel)</option>
+                    <option value="spatial_temporal_vertical_relevance_hierarchy">6D (Spatial+Temp+Vert+Rel+Hierarchy)</option>
                 </select>
                 <select 
                     value={filter.stimuliType}
@@ -226,10 +226,10 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ onBack }) => {
                         <div className="w-3 h-3 rounded-full bg-[#fb923c]" /> 4D (Spatial+Temp+Vert)
                     </div>
                     <div className="flex items-center gap-2 text-xs text-slate-400">
-                        <div className="w-3 h-3 rounded-full bg-[#a855f7]" /> 5D (Spatial+Temp+Vert+Size)
+                        <div className="w-3 h-3 rounded-full bg-[#a855f7]" /> 5D (Spatial+Temp+Vert+Rel)
                     </div>
                     <div className="flex items-center gap-2 text-xs text-slate-400">
-                        <div className="w-3 h-3 rounded-full bg-[#10b981]" /> 6D (Spatial+Temp+Vert+Size+Hierarchy)
+                        <div className="w-3 h-3 rounded-full bg-[#10b981]" /> 6D (Spatial+Temp+Vert+Rel+Hierarchy)
                     </div>
                 </div>
                 <div className="w-full h-px bg-slate-700/50 my-1" />
