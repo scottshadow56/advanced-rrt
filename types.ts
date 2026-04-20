@@ -10,10 +10,10 @@ export interface Settings {
     challengeType: 'conclusions' | 'analogies' | 'mixed';
     wordLength: number;
     stimuliType: 'words' | 'voronoi';
-    relationMode: 'spatial' | 'vertical' | 'comparison' | 'temporal' | 'distinction' | 'spatial_temporal' | 'spatial_vertical' | 'spatial_temporal_vertical' | 'spatial_temporal_vertical_size' | 'spatial_temporal_vertical_size_hierarchy';
+    relationMode: 'spatial' | 'vertical' | 'comparison' | 'temporal' | 'distinction' | 'spatial_temporal' | 'spatial_vertical' | 'spatial_temporal_vertical' | 'spatial_temporal_vertical_relevance' | 'spatial_temporal_vertical_relevance_hierarchy';
     minimalVertical: boolean;
     minimalTemporal: boolean;
-    minimalSize: boolean;
+    minimalRelevance: boolean;
     minimalHierarchy: boolean;
     interferenceRatio: number;
 }

@@ -36,7 +36,7 @@ const App: React.FC = () => {
         relationMode: 'spatial',
         minimalVertical: false,
         minimalTemporal: false,
-        minimalSize: false,
+        minimalRelevance: false,
         minimalHierarchy: false,
         interferenceRatio: 2,
     });
@@ -167,7 +167,7 @@ const App: React.FC = () => {
         setGameState('playing');
         setFeedback(null);
         
-        const hasMinimal = settings.minimalVertical || settings.minimalTemporal || settings.minimalSize || settings.minimalHierarchy;
+        const hasMinimal = settings.minimalVertical || settings.minimalTemporal || settings.minimalRelevance || settings.minimalHierarchy;
         if (hasMinimal) {
             setIsShowingLegend(true);
             setIsMemorizing(false);
@@ -329,7 +329,7 @@ const App: React.FC = () => {
                     playLowPitch={playLowPitch}
                     minimalVertical={settings.minimalVertical}
                     minimalTemporal={settings.minimalTemporal}
-                    minimalSize={settings.minimalSize}
+                    minimalRelevance={settings.minimalRelevance}
                     minimalHierarchy={settings.minimalHierarchy}
                     isShowingLegend={isShowingLegend}
                     onContinueFromLegend={handleContinueFromLegend}

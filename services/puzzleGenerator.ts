@@ -91,7 +91,7 @@ const SPATIAL_TEMPORAL_VERTICAL_DIRECTIONS: { name: string, vector: Vector }[] =
     return res;
 })();
 
-const SPATIAL_TEMPORAL_VERTICAL_SIZE_DIRECTIONS: { name: string, vector: Vector }[] = (() => {
+const SPATIAL_TEMPORAL_VERTICAL_RELEVANCE_DIRECTIONS: { name: string, vector: Vector }[] = (() => {
     const spatial = [
         ["North", [0, 1]], ["South", [0, -1]],
         ["East", [1, 0]], ["West", [-1, 0]],
@@ -104,17 +104,17 @@ const SPATIAL_TEMPORAL_VERTICAL_SIZE_DIRECTIONS: { name: string, vector: Vector 
     const vertical = [
         ["Above", [1]], ["Below", [-1]]
     ];
-    const size = [
-        ["Bigger than", [1]], ["Smaller than", [-1]]
+    const relevance = [
+        ["More relevant than", [1]], ["Less relevant than", [-1]]
     ];
     const res: { name: string, vector: Vector }[] = [];
     for (const [sName, sVec] of spatial) {
         for (const [tName, tVec] of temporal) {
             for (const [vName, vVec] of vertical) {
-                for (const [szName, szVec] of size) {
+                for (const [relName, relVec] of relevance) {
                     res.push({ 
-                        name: `${sName} and ${vName} and ${tName} and ${szName}`, 
-                        vector: [(sVec as number[])[0], (sVec as number[])[1], (tVec as number[])[0], (vVec as number[])[0], (szVec as number[])[0]] 
+                        name: `${sName} and ${vName} and ${tName} and ${relName}`, 
+                        vector: [(sVec as number[])[0], (sVec as number[])[1], (tVec as number[])[0], (vVec as number[])[0], (relVec as number[])[0]] 
                     });
                 }
             }
@@ -123,7 +123,7 @@ const SPATIAL_TEMPORAL_VERTICAL_SIZE_DIRECTIONS: { name: string, vector: Vector 
     return res;
 })();
 
-const SPATIAL_TEMPORAL_VERTICAL_SIZE_HIERARCHY_DIRECTIONS: { name: string, vector: Vector }[] = (() => {
+const SPATIAL_TEMPORAL_VERTICAL_RELEVANCE_HIERARCHY_DIRECTIONS: { name: string, vector: Vector }[] = (() => {
     const spatial = [
         ["North", [0, 1]], ["South", [0, -1]],
         ["East", [1, 0]], ["West", [-1, 0]],
@@ -136,8 +136,8 @@ const SPATIAL_TEMPORAL_VERTICAL_SIZE_HIERARCHY_DIRECTIONS: { name: string, vecto
     const vertical = [
         ["Above", [1]], ["Below", [-1]]
     ];
-    const size = [
-        ["Bigger than", [1]], ["Smaller than", [-1]]
+    const relevance = [
+        ["More relevant than", [1]], ["Less relevant than", [-1]]
     ];
     const hierarchy = [
         ["Hierarchically Above", [1]], ["Hierarchically Below", [-1]]
@@ -146,11 +146,11 @@ const SPATIAL_TEMPORAL_VERTICAL_SIZE_HIERARCHY_DIRECTIONS: { name: string, vecto
     for (const [sName, sVec] of spatial) {
         for (const [tName, tVec] of temporal) {
             for (const [vName, vVec] of vertical) {
-                for (const [szName, szVec] of size) {
+                for (const [relName, relVec] of relevance) {
                     for (const [hName, hVec] of hierarchy) {
                         res.push({ 
-                            name: `${sName} and ${vName} and ${tName} and ${szName} and ${hName}`, 
-                            vector: [(sVec as number[])[0], (sVec as number[])[1], (tVec as number[])[0], (vVec as number[])[0], (szVec as number[])[0], (hVec as number[])[0]] 
+                            name: `${sName} and ${vName} and ${tName} and ${relName} and ${hName}`, 
+                            vector: [(sVec as number[])[0], (sVec as number[])[1], (tVec as number[])[0], (vVec as number[])[0], (relVec as number[])[0], (hVec as number[])[0]] 
                         });
                     }
                 }
@@ -169,8 +169,8 @@ function getDirectionsForMode(mode: Settings['relationMode']): { name: string, v
         case 'spatial_temporal': return SPATIAL_TEMPORAL_DIRECTIONS;
         case 'spatial_vertical': return SPATIAL_VERTICAL_DIRECTIONS;
         case 'spatial_temporal_vertical': return SPATIAL_TEMPORAL_VERTICAL_DIRECTIONS;
-        case 'spatial_temporal_vertical_size': return SPATIAL_TEMPORAL_VERTICAL_SIZE_DIRECTIONS;
-        case 'spatial_temporal_vertical_size_hierarchy': return SPATIAL_TEMPORAL_VERTICAL_SIZE_HIERARCHY_DIRECTIONS;
+        case 'spatial_temporal_vertical_relevance': return SPATIAL_TEMPORAL_VERTICAL_RELEVANCE_DIRECTIONS;
+        case 'spatial_temporal_vertical_relevance_hierarchy': return SPATIAL_TEMPORAL_VERTICAL_RELEVANCE_HIERARCHY_DIRECTIONS;
         case 'spatial':
         default: return SPATIAL_DIRECTIONS;
     }
@@ -325,7 +325,7 @@ function generateTrueConclusion(itemA: string, itemB: string, actualDirection: s
 function generateSophisticatedFalseConclusion(itemA: string, itemB: string, vec: Vector, actualDirection: string, mode: Settings['relationMode'], directions: { name: string, vector: Vector }[], interferenceRatio: number): Conclusion {
     const multiDimModes: Settings['relationMode'][] = [
         'spatial_temporal', 'spatial_vertical', 'spatial_temporal_vertical', 
-        'spatial_temporal_vertical_size', 'spatial_temporal_vertical_size_hierarchy'
+        'spatial_temporal_vertical_relevance', 'spatial_temporal_vertical_relevance_hierarchy'
     ];
 
     if (multiDimModes.includes(mode)) {

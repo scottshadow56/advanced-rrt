@@ -23,9 +23,9 @@ export class RelationalEngine {
             this.dirMap.set("Above", [0, 0, 0, 1]);
             this.dirMap.set("Below", [0, 0, 0, -1]);
         }
-        if (mode.includes('size')) {
-            this.dirMap.set("Larger", [0, 0, 0, 0, 1]);
-            this.dirMap.set("Smaller", [0, 0, 0, 0, -1]);
+        if (mode.includes('relevance')) {
+            this.dirMap.set("More relevant than", [0, 0, 0, 0, 1]);
+            this.dirMap.set("Less relevant than", [0, 0, 0, 0, -1]);
         }
         if (mode.includes('hierarchy')) {
             this.dirMap.set("Superior", [0, 0, 0, 0, 0, 1]);
