@@ -27,143 +27,171 @@ const DISTINCTION_DIRECTIONS: { name: string, vector: Vector }[] = [
 ];
 
 const SPATIAL_TEMPORAL_DIRECTIONS: { name: string, vector: Vector }[] = (() => {
-    const spatial = [
+    const spatial: [string, number[]][] = [
         ["North", [0, 1]], ["South", [0, -1]],
         ["East", [1, 0]], ["West", [-1, 0]],
         ["North-East", [1, 1]], ["South-East", [1, -1]],
         ["North-West", [-1, 1]], ["South-West", [-1, -1]]
     ];
-    const temporal = [
+    const temporal: [string, number[]][] = [
         ["After", [1]], ["Before", [-1]]
     ];
     const res: { name: string, vector: Vector }[] = [];
+    
+    // Combined
     for (const [sName, sVec] of spatial) {
         for (const [tName, tVec] of temporal) {
             res.push({ 
                 name: `${sName} and ${tName}`, 
-                vector: [(sVec as number[])[0], (sVec as number[])[1], 0, (tVec as number[])[0], 0, 0] 
+                vector: [sVec[0], sVec[1], 0, tVec[0], 0, 0] 
             });
         }
+    }
+    // Partial: Spatial only
+    for (const [sName, sVec] of spatial) {
+        res.push({
+            name: `${sName} of`,
+            vector: [sVec[0], sVec[1], 0, 0, 0, 0]
+        });
+    }
+    // Partial: Temporal only
+    for (const [tName, tVec] of temporal) {
+        res.push({
+            name: tName,
+            vector: [0, 0, 0, tVec[0], 0, 0]
+        });
     }
     return res;
 })();
 
 const SPATIAL_VERTICAL_DIRECTIONS: { name: string, vector: Vector }[] = (() => {
-    const spatial = [
+    const spatial: [string, number[]][] = [
         ["North", [0, 1]], ["South", [0, -1]],
         ["East", [1, 0]], ["West", [-1, 0]],
         ["North-East", [1, 1]], ["South-East", [1, -1]],
         ["North-West", [-1, 1]], ["South-West", [-1, -1]]
     ];
-    const vertical = [
+    const vertical: [string, number[]][] = [
         ["Above", [1]], ["Below", [-1]]
     ];
     const res: { name: string, vector: Vector }[] = [];
+    // Combined
     for (const [sName, sVec] of spatial) {
         for (const [vName, vVec] of vertical) {
             res.push({ 
                 name: `${sName} and ${vName}`, 
-                vector: [(sVec as number[])[0], (sVec as number[])[1], (vVec as number[])[0], 0, 0, 0] 
+                vector: [sVec[0], sVec[1], vVec[0], 0, 0, 0] 
             });
         }
+    }
+    // Partial: Spatial only
+    for (const [sName, sVec] of spatial) {
+        res.push({
+            name: `${sName} of`,
+            vector: [sVec[0], sVec[1], 0, 0, 0, 0]
+        });
+    }
+    // Partial: Vertical only
+    for (const [vName, vVec] of vertical) {
+        res.push({
+            name: vName,
+            vector: [0, 0, vVec[0], 0, 0, 0]
+        });
     }
     return res;
 })();
 
 const SPATIAL_TEMPORAL_VERTICAL_DIRECTIONS: { name: string, vector: Vector }[] = (() => {
-    const spatial = [
+    const spatial: [string, number[]][] = [
         ["North", [0, 1]], ["South", [0, -1]],
         ["East", [1, 0]], ["West", [-1, 0]],
         ["North-East", [1, 1]], ["South-East", [1, -1]],
         ["North-West", [-1, 1]], ["South-West", [-1, -1]]
     ];
-    const temporal = [
+    const temporal: [string, number[]][] = [
         ["After", [1]], ["Before", [-1]]
     ];
-    const vertical = [
+    const vertical: [string, number[]][] = [
         ["Above", [1]], ["Below", [-1]]
     ];
     const res: { name: string, vector: Vector }[] = [];
+    // Full triple
     for (const [sName, sVec] of spatial) {
         for (const [tName, tVec] of temporal) {
             for (const [vName, vVec] of vertical) {
                 res.push({ 
-                    name: `${sName} and ${vName} and ${tName}`, 
-                    vector: [(sVec as number[])[0], (sVec as number[])[1], (vVec as number[])[0], (tVec as number[])[0], 0, 0] 
+                    name: `${sName}, ${vName}, and ${tName}`, 
+                    vector: [sVec[0], sVec[1], vVec[0], tVec[0], 0, 0] 
                 });
             }
+        }
+    }
+    // Include the 2D+1 combinations
+    res.push(...SPATIAL_TEMPORAL_DIRECTIONS);
+    res.push(...SPATIAL_VERTICAL_DIRECTIONS);
+    // Temporal + Vertical
+    for (const [tName, tVec] of temporal) {
+        for (const [vName, vVec] of vertical) {
+            res.push({
+                name: `${vName} and ${tName}`,
+                vector: [0, 0, vVec[0], tVec[0], 0, 0]
+            });
         }
     }
     return res;
 })();
 
 const SPATIAL_TEMPORAL_VERTICAL_RELEVANCE_DIRECTIONS: { name: string, vector: Vector }[] = (() => {
-    const spatial = [
-        ["North", [0, 1]], ["South", [0, -1]],
-        ["East", [1, 0]], ["West", [-1, 0]],
-        ["North-East", [1, 1]], ["South-East", [1, -1]],
-        ["North-West", [-1, 1]], ["South-West", [-1, -1]]
-    ];
-    const temporal = [
-        ["After", [1]], ["Before", [-1]]
-    ];
-    const vertical = [
-        ["Above", [1]], ["Below", [-1]]
-    ];
-    const relevance = [
+    const res = [...SPATIAL_TEMPORAL_VERTICAL_DIRECTIONS];
+    const relevance: [string, number[]][] = [
         ["More relevant than", [1]], ["Less relevant than", [-1]]
     ];
-    const res: { name: string, vector: Vector }[] = [];
-    for (const [sName, sVec] of spatial) {
-        for (const [tName, tVec] of temporal) {
-            for (const [vName, vVec] of vertical) {
-                for (const [relName, relVec] of relevance) {
-                    res.push({ 
-                        name: `${sName} and ${vName} and ${tName} and ${relName}`, 
-                        vector: [(sVec as number[])[0], (sVec as number[])[1], (vVec as number[])[0], (tVec as number[])[0], (relVec as number[])[0], 0] 
-                    });
-                }
-            }
+    // Add relevance to existing
+    const combined: { name: string, vector: Vector }[] = [];
+    for (const dir of res) {
+        for (const [relName, relVec] of relevance) {
+            const v = [...dir.vector];
+            v[4] = relVec[0];
+            combined.push({
+                name: `${dir.name} and ${relName}`,
+                vector: v as Vector
+            });
         }
     }
-    return res;
+    // Add pure relevance
+    for (const [relName, relVec] of relevance) {
+        combined.push({
+            name: relName,
+            vector: [0, 0, 0, 0, relVec[0], 0]
+        });
+    }
+    return [...res, ...combined];
 })();
 
 const SPATIAL_TEMPORAL_VERTICAL_RELEVANCE_HIERARCHY_DIRECTIONS: { name: string, vector: Vector }[] = (() => {
-    const spatial = [
-        ["North", [0, 1]], ["South", [0, -1]],
-        ["East", [1, 0]], ["West", [-1, 0]],
-        ["North-East", [1, 1]], ["South-East", [1, -1]],
-        ["North-West", [-1, 1]], ["South-West", [-1, -1]]
-    ];
-    const temporal = [
-        ["After", [1]], ["Before", [-1]]
-    ];
-    const vertical = [
-        ["Above", [1]], ["Below", [-1]]
-    ];
-    const relevance = [
-        ["More relevant than", [1]], ["Less relevant than", [-1]]
-    ];
-    const hierarchy = [
+    const res = [...SPATIAL_TEMPORAL_VERTICAL_RELEVANCE_DIRECTIONS];
+    const hierarchy: [string, number[]][] = [
         ["Hierarchically Above", [1]], ["Hierarchically Below", [-1]]
     ];
-    const res: { name: string, vector: Vector }[] = [];
-    for (const [sName, sVec] of spatial) {
-        for (const [tName, tVec] of temporal) {
-            for (const [vName, vVec] of vertical) {
-                for (const [relName, relVec] of relevance) {
-                    for (const [hName, hVec] of hierarchy) {
-                        res.push({ 
-                            name: `${sName} and ${vName} and ${tName} and ${relName} and ${hName}`, 
-                            vector: [(sVec as number[])[0], (sVec as number[])[1], (vVec as number[])[0], (tVec as number[])[0], (relVec as number[])[0], (hVec as number[])[0]] 
-                        });
-                    }
-                }
-            }
+    const combined: { name: string, vector: Vector }[] = [];
+    for (const dir of res) {
+        for (const [hName, hVec] of hierarchy) {
+            const v = [...dir.vector];
+            v[5] = hVec[0];
+            combined.push({
+                name: `${dir.name} and ${hName}`,
+                vector: v as Vector
+            });
         }
     }
-    return res;
+    // Add pure hierarchy
+    for (const [hName, hVec] of hierarchy) {
+        combined.push({
+            name: hName,
+            vector: [0, 0, 0, 0, 0, hVec[0]]
+        });
+    }
+    return [...res, ...combined];
 })();
 
 function getDirectionsForMode(mode: Settings['relationMode']): { name: string, vector: Vector }[] {
@@ -291,27 +319,52 @@ function createConclusion(nodes: string[], coordinates: Map<string, Vector>, pre
 
     // 2. Select items: Newest vs Oldest relative to offset
     const newestIdx = nodes.length - 1;
-    // User definition: oldest item index = lastIndex - (n - 1)
     const oldestIdxInWindow = Math.max(0, newestIdx - (offset - 1));
     
     let itemA = nodes[newestIdx];
     let itemB = nodes[oldestIdxInWindow];
 
-    // Fallback if needed
-    if (!itemA || !itemB || itemA === itemB) {
-        const shuffled = shuffle(Array.from(new Set(premises.flatMap(p => [p.itemA, p.itemB]))));
-        itemA = shuffled[0] || nodes[nodes.length - 1];
-        itemB = shuffled[1] || nodes[Math.max(0, nodes.length - 2)];
+    // Find a pair that are NOT at the same location if possible
+    let actualVec: Vector = [0,0,0,0,0,0];
+    let actualDirection: string | null = null;
+    let fallbackAttempts = 0;
+
+    const pickAndVerify = (a: string, b: string) => {
+        const cA = coordinates.get(a);
+        const cB = coordinates.get(b);
+        if (!cA || !cB) return false;
+        const v: Vector = cA.map((val, i) => val - cB[i]) as Vector;
+        const d = getDirectionFromVector(v, mode);
+        if (d && d !== "the Same as") {
+            actualVec = v;
+            actualDirection = d;
+            return true;
+        }
+        return false;
+    };
+
+    if (!pickAndVerify(itemA, itemB)) {
+        const shuffled = shuffle(nodes);
+        for (const candidateA of shuffled) {
+            for (const candidateB of shuffled) {
+                if (candidateA === candidateB) continue;
+                if (pickAndVerify(candidateA, candidateB)) {
+                    itemA = candidateA;
+                    itemB = candidateB;
+                    break;
+                }
+            }
+            if (actualDirection) break;
+        }
     }
 
-    // 3. Matrix Operation: coordA - coordB
-    const coordA = coordinates.get(itemA)!;
-    const coordB = coordinates.get(itemB)!;
-    const actualVec: Vector = coordA.map((v, i) => v - coordB[i]);
-    const actualDirection = getDirectionFromVector(actualVec, mode) || "the same location";
+    // Default fallback if we somehow still have nothing (unlikely)
+    if (!actualDirection) {
+        actualDirection = "in a specific relationship";
+    }
 
     // 4. Scramble if false
-    let presentedDirection = actualDirection;
+    let presentedDirection = actualDirection!;
     if (!isTrue) {
         const directions = getDirectionsForMode(mode);
         const targetLen = directions[0].vector.length;
@@ -319,9 +372,8 @@ function createConclusion(nodes: string[], coordinates: Map<string, Vector>, pre
         
         let attempts = 0;
         let foundFalse = false;
-        while (attempts < 15) {
+        while (attempts < 20) {
             const scrambledVec = [...normalizedActual];
-            // Matrix scrambling logic: invert signs or shift 0s
             const numToChange = Math.max(1, Math.floor(Math.random() * 2) + (interferenceRatio > 3 ? 1 : 0));
             const indices = shuffle(Array.from({length: scrambledVec.length}, (_, i) => i));
             
@@ -330,14 +382,14 @@ function createConclusion(nodes: string[], coordinates: Map<string, Vector>, pre
                 if (scrambledVec[idx] === 0) {
                     scrambledVec[idx] = Math.random() < 0.5 ? 1 : -1;
                 } else if (Math.random() < 0.7) {
-                    scrambledVec[idx] = -scrambledVec[idx]; // Matrix Inversion
+                    scrambledVec[idx] = -scrambledVec[idx]; 
                 } else {
-                    scrambledVec[idx] = 0; // Matrix Nullification
+                    scrambledVec[idx] = 0; 
                 }
             }
             
             const newDir = getDirectionFromVector(scrambledVec, mode);
-            if (newDir && newDir !== actualDirection) {
+            if (newDir && newDir !== actualDirection && newDir !== "the Same as") {
                 presentedDirection = newDir;
                 foundFalse = true;
                 break;
@@ -346,12 +398,11 @@ function createConclusion(nodes: string[], coordinates: Map<string, Vector>, pre
         }
         
         if (!foundFalse) {
-            const others = directions.filter(d => d.name !== actualDirection);
-            presentedDirection = others.length > 0 ? shuffle(others)[0].name : actualDirection;
+            const others = directions.filter(d => d.name !== actualDirection && d.name !== "the Same as");
+            presentedDirection = others.length > 0 ? shuffle(others)[0].name : actualDirection!;
         }
     }
 
-    // 5. Final check for edge case where scrambling accidentally lands on truth
     const finalIsTrue = presentedDirection === actualDirection;
 
     const statement: Conclusion = { itemA, direction: presentedDirection, itemB };
