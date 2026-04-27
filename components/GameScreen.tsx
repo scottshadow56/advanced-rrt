@@ -141,7 +141,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
         if (relevance === 'more') {
             relevanceStyle = "font-black tracking-tight";
         } else if (relevance === 'less') {
-            relevanceStyle = "blur-[1.2px] font-thin";
+            relevanceStyle = "blur-[0.6px] font-thin";
         }
 
         // Hierarchy Logic (Underline Style)
@@ -173,8 +173,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
         if (challenge.type === 'conclusion') {
             const { itemA, direction, itemB } = challenge.statement;
             return (
-                <div className="mt-2 text-2xl font-space-mono text-slate-100 p-4 bg-slate-900/50 rounded-lg border-2 border-dashed border-slate-600 flex flex-wrap items-center justify-center gap-2 leading-relaxed">
-                    Is <Stimulus id={itemA} complexity={voronoiComplexity} /> {renderDirection(direction)} <Stimulus id={itemB} complexity={voronoiComplexity} />?
+                <div className="mt-2 text-2xl font-space-mono text-slate-100 p-4 bg-slate-900/50 rounded-lg border-2 border-dashed border-slate-600 flex flex-wrap items-center justify-center gap-4 leading-relaxed">
+                    Is <Stimulus id={itemA} complexity={voronoiComplexity} vector={puzzleState?.coordinates.get(itemA)} /> {renderDirection(direction)} <Stimulus id={itemB} complexity={voronoiComplexity} vector={puzzleState?.coordinates.get(itemB)} />?
                 </div>
             );
         }
@@ -183,11 +183,14 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
             const { itemA1, itemB1, itemA2, itemB2 } = challenge.statement;
             return (
                 <div className="mt-2 text-xl sm:text-2xl font-space-mono text-slate-100 p-4 bg-slate-900/50 rounded-lg border-2 border-dashed border-slate-600">
-                    <div className="flex flex-wrap items-center justify-center gap-2">
-                        Is the relation of <Stimulus id={itemA1} complexity={voronoiComplexity} /> to <Stimulus id={itemB1} complexity={voronoiComplexity} />
+                    <div className="flex flex-wrap items-center justify-center gap-4">
+                        Is the relation of <Stimulus id={itemA1} complexity={voronoiComplexity} vector={puzzleState?.coordinates.get(itemA1)} /> to <Stimulus id={itemB1} complexity={voronoiComplexity} vector={puzzleState?.coordinates.get(itemB1)} />
                     </div>
-                    <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
-                        the same as <Stimulus id={itemA2} complexity={voronoiComplexity} /> to <Stimulus id={itemB2} complexity={voronoiComplexity} />?
+                    <div className="flex flex-wrap items-center justify-center gap-4 mt-4 text-sm text-slate-400">
+                        the same as the relation of
+                    </div>
+                    <div className="flex flex-wrap items-center justify-center gap-4 mt-4">
+                        <Stimulus id={itemA2} complexity={voronoiComplexity} vector={puzzleState?.coordinates.get(itemA2)} /> to <Stimulus id={itemB2} complexity={voronoiComplexity} vector={puzzleState?.coordinates.get(itemB2)} />?
                     </div>
                 </div>
             );
@@ -207,7 +210,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
         }
         if (minimalRelevance) {
             legendItems.push({ label: 'More Relevant', style: "font-black tracking-tight text-slate-100" });
-            legendItems.push({ label: 'Less Relevant', style: "blur-[1.2px] font-thin text-slate-100" });
+            legendItems.push({ label: 'Less Relevant', style: "blur-[0.6px] font-thin text-slate-100" });
         }
         if (minimalHierarchy) {
             legendItems.push({ label: 'H. Above', style: "border-b-2 border-dashed border-yellow-400/50 pb-0.5 text-slate-100" });
@@ -263,10 +266,10 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
                         {isMemorizing && initialPremises ? (
                     <>
                         <h2 className="text-slate-400 text-lg">Memorize the starting map:</h2>
-                        <div className="mt-2 space-y-2 text-xl font-space-mono text-slate-100 p-4 bg-slate-900/50 rounded-lg animate-pop-in leading-relaxed">
+                        <div className="mt-2 space-y-4 text-xl font-space-mono text-slate-100 p-4 bg-slate-900/50 rounded-lg animate-pop-in leading-relaxed">
                            {initialPremises.map((p, i) => (
-                               <div key={`${p.itemA}-${p.itemB}-${i}`} className="flex flex-wrap items-center justify-center gap-2">
-                                   <Stimulus id={p.itemA} complexity={voronoiComplexity} /> is {renderDirection(p.direction)} <Stimulus id={p.itemB} complexity={voronoiComplexity} />
+                               <div key={`${p.itemA}-${p.itemB}-${i}`} className="flex flex-wrap items-center justify-center gap-4">
+                                   <Stimulus id={p.itemA} complexity={voronoiComplexity} vector={puzzleState?.coordinates.get(p.itemA)} /> is {renderDirection(p.direction)} <Stimulus id={p.itemB} complexity={voronoiComplexity} vector={puzzleState?.coordinates.get(p.itemB)} />
                                </div>
                            ))}
                         </div>
@@ -274,8 +277,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
                 ) : lastPremise && (
                      <>
                         <h2 className="text-slate-400 text-lg">The map has changed:</h2>
-                        <div key={`${lastPremise.itemA}-${lastPremise.itemB}`} className="mt-2 text-2xl font-space-mono text-slate-100 p-4 bg-slate-900/50 rounded-lg animate-pop-in flex flex-wrap items-center justify-center gap-2 leading-relaxed">
-                            <Stimulus id={lastPremise.itemA} complexity={voronoiComplexity} /> is {renderDirection(lastPremise.direction)} <Stimulus id={lastPremise.itemB} complexity={voronoiComplexity} />
+                        <div key={`${lastPremise.itemA}-${lastPremise.itemB}`} className="mt-2 text-2xl font-space-mono text-slate-100 p-4 bg-slate-900/50 rounded-lg animate-pop-in flex flex-wrap items-center justify-center gap-4 leading-relaxed">
+                            <Stimulus id={lastPremise.itemA} complexity={voronoiComplexity} vector={puzzleState?.coordinates.get(lastPremise.itemA)} /> is {renderDirection(lastPremise.direction)} <Stimulus id={lastPremise.itemB} complexity={voronoiComplexity} vector={puzzleState?.coordinates.get(lastPremise.itemB)} />
                         </div>
                      </>
                 )}

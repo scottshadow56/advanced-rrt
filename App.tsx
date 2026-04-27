@@ -91,7 +91,7 @@ const App: React.FC = () => {
     const handleContinueFromMemorization = useCallback(() => {
         if (!puzzleState) return;
 
-        const nextStep = advancePuzzle(puzzleState.nodes, puzzleState.coordinates, premises, settings.challengeType, settings.wordLength, gameBias, settings.relationMode, settings.stimuliType, settings.interferenceRatio, recentPairs);
+        const nextStep = advancePuzzle(puzzleState.nodes, puzzleState.coordinates, premises, settings.challengeType, settings.wordLength, gameBias, settings.relationMode, settings.stimuliType, settings.interferenceRatio, recentPairs, settings.initialPremises);
         
         const newEngine = new RelationalEngine(settings.relationMode);
         const allNodes = nextStep.updatedNodes;
@@ -257,7 +257,7 @@ const App: React.FC = () => {
             setGameBias(nextBias);
 
             // Use the updatedRecentPairs for the next generation
-            const nextStep = advancePuzzle(puzzleState.nodes, puzzleState.coordinates, premises, settings.challengeType, settings.wordLength, nextBias, settings.relationMode, settings.stimuliType, settings.interferenceRatio, updatedRecentPairs);
+            const nextStep = advancePuzzle(puzzleState.nodes, puzzleState.coordinates, premises, settings.challengeType, settings.wordLength, nextBias, settings.relationMode, settings.stimuliType, settings.interferenceRatio, updatedRecentPairs, settings.initialPremises);
             const newEngine = new RelationalEngine(settings.relationMode);
             const allNodes = nextStep.updatedNodes;
             const allCoords = nextStep.updatedCoordinates;

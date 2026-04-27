@@ -53,10 +53,12 @@ export type Challenge = {
     isTrue: boolean;
     difficulty?: number;
     explanation?: string;
+    highlightNodes?: string[];
 } | {
     type: 'analogy';
     statement: Analogy;
     isTrue: boolean;
     difficulty?: number;
     explanation?: string;
+    highlightNodes?: string[];
 };
