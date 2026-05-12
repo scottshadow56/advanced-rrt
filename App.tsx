@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { RelationalEngine } from './services/relationalEngine';
 import type { GameState, Premise, Vector, GameOverReason, Challenge, Settings } from './types';
 import { generateInitialPuzzle, advancePuzzle } from './services/puzzleGenerator';
 import StartScreen from './components/StartScreen';
@@ -41,7 +40,6 @@ const App: React.FC = () => {
         interferenceRatio: 2,
     });
     
-    const [engine, setEngine] = useState(() => new RelationalEngine('spatial'));
     const [currentChallenge, setCurrentChallenge] = useState<Challenge | null>(null);
     const [puzzleState, setPuzzleState] = useState<{ nodes: string[]; coordinates: Map<string, Vector> } | null>(null);
     const [lastPremise, setLastPremise] = useState<Premise | null>(null);
@@ -93,24 +91,6 @@ const App: React.FC = () => {
 
         const nextStep = advancePuzzle(puzzleState.nodes, puzzleState.coordinates, premises, settings.challengeType, settings.wordLength, gameBias, settings.relationMode, settings.stimuliType, settings.interferenceRatio, recentPairs, settings.initialPremises);
         
-        const newEngine = new RelationalEngine(settings.relationMode);
-        const allNodes = nextStep.updatedNodes;
-        const allCoords = nextStep.updatedCoordinates;
-        for (const node1 of allNodes) {
-            for (const node2 of allNodes) {
-                if (node1 === node2) continue;
-                const coord1 = allCoords.get(node1)!;
-                const coord2 = allCoords.get(node2)!;
-                const vec: Vector = coord1.map((v, i) => v - coord2[i]);
-                for (const [dir, dirVec] of newEngine.dirMap.entries()) {
-                    if (vec.length === dirVec.length && vec.every((v, i) => v === dirVec[i])) {
-                         newEngine.addRelation(node1, dir, node2);
-                    }
-                }
-            }
-        }
-        
-        setEngine(newEngine);
         setPuzzleState({ nodes: nextStep.updatedNodes, coordinates: nextStep.updatedCoordinates });
         setPremises(nextStep.updatedPremises);
         setCurrentChallenge(nextStep.newChallenge);
@@ -118,7 +98,7 @@ const App: React.FC = () => {
         setInitialPremises(null);
         setIsMemorizing(false);
         setOldestNode(nextStep.oldestNode);
-    }, [puzzleState, premises, settings.challengeType, settings.wordLength, gameBias, settings.relationMode, settings.stimuliType]);
+    }, [puzzleState, premises, settings.challengeType, settings.wordLength, gameBias, settings.relationMode, settings.stimuliType, settings.interferenceRatio, recentPairs, settings.initialPremises]);
 
     useEffect(() => {
         if (gameState !== 'playing' || !isMemorizing) return;
@@ -151,10 +131,6 @@ const App: React.FC = () => {
         const initialRecentPairs = initialPuzzle.premises.map(p => [p.itemA, p.itemB].sort());
         setRecentPairs(initialRecentPairs.slice(-8));
 
-        const newEngine = new RelationalEngine(settings.relationMode);
-        initialPuzzle.premises.forEach(p => newEngine.addRelation(p.itemA, p.direction, p.itemB));
-
-        setEngine(newEngine);
         setPuzzleState({ nodes: initialPuzzle.nodes, coordinates: initialPuzzle.coordinates });
         setPremises(initialPuzzle.premises);
         setCurrentChallenge(null);
@@ -258,25 +234,7 @@ const App: React.FC = () => {
 
             // Use the updatedRecentPairs for the next generation
             const nextStep = advancePuzzle(puzzleState.nodes, puzzleState.coordinates, premises, settings.challengeType, settings.wordLength, nextBias, settings.relationMode, settings.stimuliType, settings.interferenceRatio, updatedRecentPairs, settings.initialPremises);
-            const newEngine = new RelationalEngine(settings.relationMode);
-            const allNodes = nextStep.updatedNodes;
-            const allCoords = nextStep.updatedCoordinates;
             
-            for (const node1 of allNodes) {
-                for (const node2 of allNodes) {
-                    if (node1 === node2) continue;
-                    const coord1 = allCoords.get(node1)!;
-                    const coord2 = allCoords.get(node2)!;
-                    const vec: Vector = coord1.map((v, i) => v - coord2[i]);
-                    for (const [dir, dirVec] of engine.dirMap.entries()) {
-                        if (vec.length === dirVec.length && vec.every((v, i) => v === dirVec[i])) {
-                             newEngine.addRelation(node1, dir, node2);
-                        }
-                    }
-                }
-            }
-
-            setEngine(newEngine);
             setPuzzleState({ nodes: nextStep.updatedNodes, coordinates: nextStep.updatedCoordinates });
             setPremises(nextStep.updatedPremises);
             setCurrentChallenge(nextStep.newChallenge);
@@ -287,7 +245,7 @@ const App: React.FC = () => {
             setOldestNode(nextStep.oldestNode);
         }, 800); 
 
-    }, [currentChallenge, puzzleState, premises, engine, currentRound, settings, gameBias, nextShiftRound, score, correctAnswers, timeLeft, saveGameToHistory, recentPairs]);
+    }, [currentChallenge, puzzleState, premises, currentRound, settings, gameBias, nextShiftRound, score, correctAnswers, timeLeft, saveGameToHistory, recentPairs]);
     
     const handleQuit = () => {
         setGameOverReason('quit');
