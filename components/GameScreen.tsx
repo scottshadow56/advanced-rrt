@@ -55,54 +55,66 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
         }
     }, [isMemorizing, initialPremises, lastPremise, challenge, playHighPitch, playLowPitch]);
 
-    const renderDirection = (direction: string, idA?: string, idB?: string) => {
-        if (!puzzleState || !idA || !idB) return <span className="text-purple-400 font-medium">{direction}</span>;
+    const renderDirection = (direction: string) => {
+        const lowDir = direction.toLowerCase();
         
-        const coords = puzzleState.coordinates;
-        const cA = coords.get(idA);
-        const cB = coords.get(idB);
-        if (!cA || !cB) return <span className="text-purple-400 font-medium">{direction}</span>;
+        let vertical: 'above' | 'below' | null = null;
+        let temporal: 'after' | 'before' | null = null;
+        let relevance: 'more' | 'less' | null = null;
+        let hierarchy: 'above' | 'below' | 'neutral' | null = null;
+        let spatialDir: string | null = null;
 
-        // Relative vector A -> B
-        const vec = cA.map((v, i) => Math.sign(v - cB[i]));
+        // 1. Vertical
+        if (lowDir.includes('above') && !lowDir.includes('hierarchically')) vertical = 'above';
+        else if (lowDir.includes('below') && !lowDir.includes('hierarchically')) vertical = 'below';
 
-        // Determine dimension values
-        const vertical: 'above' | 'below' | null = vec[2] === 1 ? 'above' : vec[2] === -1 ? 'below' : null;
-        const temporal: 'after' | 'before' | null = vec[3] === 1 ? 'after' : vec[3] === -1 ? 'before' : null;
-        const relevance: 'more' | 'less' | null = vec[4] === 1 ? 'more' : vec[4] === -1 ? 'less' : null;
-        const hierarchy: 'above' | 'below' | 'neutral' | null = vec[5] === 1 ? 'above' : vec[5] === -1 ? 'below' : (vec.every(v => v === 0) ? 'neutral' : null);
+        // 2. Temporal
+        if (lowDir.includes('after')) temporal = 'after';
+        else if (lowDir.includes('before')) temporal = 'before';
 
-        // Spatial reconstruction
-        const ns = vec[1] === 1 ? 'North' : vec[1] === -1 ? 'South' : '';
-        const ew = vec[0] === 1 ? 'East' : vec[0] === -1 ? 'West' : '';
-        let spatial = ns && ew ? `${ns}-${ew}` : ns || ew;
+        // 3. Relevance / Comparison
+        if (lowDir.includes('more relevant') || lowDir.includes('greater than')) relevance = 'more';
+        else if (lowDir.includes('less relevant') || lowDir.includes('less than')) relevance = 'less';
 
-        // PRIORITY TEXT LOGIC:
-        // Identify which dimension will be the "primary" text anchor
-        const primaryLabel = spatial || 
-                            (vertical ? (vertical === 'above' ? 'Above' : 'Below') : null) ||
-                            (temporal ? (temporal === 'after' ? 'After' : 'Before') : null) ||
-                            (relevance ? (relevance === 'more' ? 'More' : 'Less') : null) ||
-                            (hierarchy ? (hierarchy === 'neutral' ? 'Same' : (hierarchy === 'above' ? 'H-Above' : 'H-Below')) : null);
+        // 4. Hierarchy / Distinction
+        if (lowDir.includes('hierarchically above') || lowDir.includes('opposite')) hierarchy = 'above';
+        else if (lowDir.includes('hierarchically below')) hierarchy = 'below';
+        else if (lowDir.includes('same')) hierarchy = 'neutral';
 
-        const textParts: string[] = [];
-        if (primaryLabel) textParts.push(primaryLabel);
-
-        // Only append other labels if they are NOT minimal AND not already the primary label
-        const addIfNotPrimary = (val: string | null, isMinimal: boolean) => {
-            if (val && !isMinimal && val !== primaryLabel) {
-                textParts.push(val);
+        // 5. Spatial
+        const spatialKeywords = ['north-east', 'south-east', 'north-west', 'south-west', 'north', 'south', 'east', 'west'];
+        for (const k of spatialKeywords) {
+            const regex = new RegExp(`\\b${k}\\b`, 'i');
+            if (regex.test(direction)) {
+                spatialDir = k.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join('-');
+                break;
             }
-        };
+        }
 
-        addIfNotPrimary(vertical ? (vertical === 'above' ? 'Above' : 'Below') : null, minimalVertical);
-        addIfNotPrimary(temporal ? (temporal === 'after' ? 'After' : 'Before') : null, minimalTemporal);
-        addIfNotPrimary(relevance ? (relevance === 'more' ? 'More' : 'Less') : null, minimalRelevance);
-        addIfNotPrimary(hierarchy ? (hierarchy === 'neutral' ? 'Same' : (hierarchy === 'above' ? 'H-Above' : 'H-Below')) : null, minimalHierarchy);
+        // Determine visible text parts
+        const displayParts: string[] = [];
+        if (spatialDir) displayParts.push(spatialDir);
+        
+        if (vertical && !minimalVertical) displayParts.push(vertical === 'above' ? 'Above' : 'Below');
+        if (temporal && !minimalTemporal) displayParts.push(temporal === 'after' ? 'After' : 'Before');
+        if (relevance && !minimalRelevance) displayParts.push(relevance === 'more' ? 'More' : 'Less');
+        if (hierarchy && !minimalHierarchy) {
+            if (hierarchy === 'neutral') displayParts.push('Same');
+            else displayParts.push(hierarchy === 'above' ? 'H-Above' : 'H-Below');
+        }
 
-        // Final content displayed in the UI box
-        let finalContent = textParts.join(' & ');
-        if (!finalContent) finalContent = direction; // Absolute fallback
+        let finalContent = displayParts.join(' & ');
+        
+        // If everything is minimal, pick the first available dimension text instead of an arrow
+        if (!finalContent) {
+            if (spatialDir) finalContent = spatialDir;
+            else if (vertical) finalContent = vertical === 'above' ? 'Above' : 'Below';
+            else if (temporal) finalContent = temporal === 'after' ? 'After' : 'Before';
+            else if (relevance) finalContent = relevance === 'more' ? 'More' : 'Less';
+            else if (hierarchy) finalContent = hierarchy === 'neutral' ? 'Same' : (hierarchy === 'above' ? 'H-Above' : 'H-Below');
+        }
+
+        if (!finalContent) finalContent = direction;
 
         // Style logic based on dimensions
         let textStyle = "text-slate-100";
@@ -162,7 +174,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
             const { itemA, direction, itemB } = challenge.statement;
             return (
                 <div className="mt-2 text-2xl font-space-mono text-slate-100 p-4 bg-slate-900/50 rounded-lg border-2 border-dashed border-slate-600 flex flex-wrap items-center justify-center gap-4 leading-relaxed">
-                    Is <Stimulus id={itemA} complexity={voronoiComplexity} vector={puzzleState?.coordinates.get(itemA)} /> {renderDirection(direction, itemA, itemB)} <Stimulus id={itemB} complexity={voronoiComplexity} vector={puzzleState?.coordinates.get(itemB)} />?
+                    Is <Stimulus id={itemA} complexity={voronoiComplexity} vector={puzzleState?.coordinates.get(itemA)} /> {renderDirection(direction)} <Stimulus id={itemB} complexity={voronoiComplexity} vector={puzzleState?.coordinates.get(itemB)} />?
                 </div>
             );
         }
@@ -257,7 +269,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
                         <div className="mt-2 space-y-4 text-xl font-space-mono text-slate-100 p-4 bg-slate-900/50 rounded-lg animate-pop-in leading-relaxed">
                            {initialPremises.map((p, i) => (
                                <div key={`${p.itemA}-${p.itemB}-${i}`} className="flex flex-wrap items-center justify-center gap-4">
-                                   <Stimulus id={p.itemA} complexity={voronoiComplexity} vector={puzzleState?.coordinates.get(p.itemA)} /> {renderDirection(p.direction, p.itemA, p.itemB)} <Stimulus id={p.itemB} complexity={voronoiComplexity} vector={puzzleState?.coordinates.get(p.itemB)} />
+                                   <Stimulus id={p.itemA} complexity={voronoiComplexity} vector={puzzleState?.coordinates.get(p.itemA)} /> {renderDirection(p.direction)} <Stimulus id={p.itemB} complexity={voronoiComplexity} vector={puzzleState?.coordinates.get(p.itemB)} />
                                </div>
                            ))}
                         </div>
@@ -266,7 +278,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
                      <>
                         <h2 className="text-slate-400 text-lg">The map has changed:</h2>
                         <div key={`${lastPremise.itemA}-${lastPremise.itemB}`} className="mt-2 text-2xl font-space-mono text-slate-100 p-4 bg-slate-900/50 rounded-lg animate-pop-in flex flex-wrap items-center justify-center gap-4 leading-relaxed">
-                            <Stimulus id={lastPremise.itemA} complexity={voronoiComplexity} vector={puzzleState?.coordinates.get(lastPremise.itemA)} /> {renderDirection(lastPremise.direction, lastPremise.itemA, lastPremise.itemB)} <Stimulus id={lastPremise.itemB} complexity={voronoiComplexity} vector={puzzleState?.coordinates.get(lastPremise.itemB)} />
+                            <Stimulus id={lastPremise.itemA} complexity={voronoiComplexity} vector={puzzleState?.coordinates.get(lastPremise.itemA)} /> {renderDirection(lastPremise.direction)} <Stimulus id={lastPremise.itemB} complexity={voronoiComplexity} vector={puzzleState?.coordinates.get(lastPremise.itemB)} />
                         </div>
                      </>
                 )}

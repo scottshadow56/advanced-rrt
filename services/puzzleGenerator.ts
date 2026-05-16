@@ -255,7 +255,6 @@ function areItemsSameAsPremise(itemA: string, itemB: string, premise: Premise | 
     if (!premise) return false;
     const items = [itemA, itemB].sort();
     const premiseItems = [premise.itemA, premise.itemB].sort();
-    console.log(items, premiseItems);
     return items[0] === premiseItems[0] && items[1] === premiseItems[1];
 }
 
@@ -270,6 +269,8 @@ function getExplanation(itemA: string, itemB: string, isTrue: boolean, actualDir
 function createConclusion(nodes: string[], coordinates: Map<string, Vector>, lastPremise: Premise | null = null, targetIsTrueProb: number = 0.5, mode: Settings['relationMode'] = 'spatial', interferenceRatio: number = 2, recentPairs: string[][] = [], activePreference: number = 0.9, offset: number = 3): { statement: Conclusion, isTrue: boolean, difficulty: number, explanation: string, highlightNodes: string[] } {
     // 1. Decide if it will be true or false (target 50%)
     const isTrue = Math.random() < targetIsTrueProb;
+
+    console.group(`[Puzzle Gen] Generating Conclusion (${isTrue ? 'Target TRUE' : 'Target FALSE'})`);
 
     // 2. Select items: Newest vs Oldest relative to offset
     const newestIdx = nodes.length - 1;
@@ -291,6 +292,8 @@ function createConclusion(nodes: string[], coordinates: Map<string, Vector>, las
         if (d && d !== "the Same as") {
             actualVec = v;
             actualDirection = d;
+            console.log(`  Items: ${a} @(${cA}) vs ${b} @(${cB})`);
+            console.log(`  Actual Rel: ${d} (Vector: ${v})`);
             return true;
         }
         return false;
@@ -313,6 +316,7 @@ function createConclusion(nodes: string[], coordinates: Map<string, Vector>, las
 
     if (!actualDirection) {
         actualDirection = "in a specific relationship";
+        console.warn('  Warning: No distinct relationship found between candidates.');
     }
 
     // 4. Scramble if false
@@ -346,10 +350,11 @@ function createConclusion(nodes: string[], coordinates: Map<string, Vector>, las
                 }
             }
             
-            const newDir = getDirectionFromVector(scrambledVec, mode);
+            const newDir = getDirectionFromVector(scrambledVec as Vector, mode);
             if (newDir && newDir !== actualDirection && newDir !== "the Same as") {
                 presentedDirection = newDir;
                 foundFalse = true;
+                console.log(`  Scrambled: ${actualDirection} -> ${newDir} (Attempts: ${attempts})`);
                 break;
             }
             attempts++;
@@ -358,10 +363,13 @@ function createConclusion(nodes: string[], coordinates: Map<string, Vector>, las
         if (!foundFalse) {
             const others = directions.filter(d => d.name !== actualDirection && d.name !== "the Same as");
             presentedDirection = others.length > 0 ? shuffle(others)[0].name : actualDirection!;
+            console.log(`  Fallback Scramble: ${actualDirection} -> ${presentedDirection}`);
         }
     }
 
     const finalIsTrue = presentedDirection === actualDirection;
+    console.log(`  Final Decision: Presented "${itemA} is ${presentedDirection} ${itemB}" | Result: ${finalIsTrue ? 'TRUE' : 'FALSE'}`);
+    console.groupEnd();
 
     const statement: Conclusion = { itemA, direction: presentedDirection, itemB };
     const difficulty = 2; // Fixed difficulty since we removed path exploration
@@ -372,6 +380,7 @@ function createConclusion(nodes: string[], coordinates: Map<string, Vector>, las
 
 function createAnalogy(nodes: string[], coordinates: Map<string, Vector>, lastPremise: Premise | null = null, targetIsTrueProb: number = 0.5, interferenceRatio: number = 2, recentPairs: string[][] = [], activePreference: number = 0.9, offset: number = 3): { statement: Analogy, isTrue: boolean, difficulty: number, explanation: string, highlightNodes: string[] } {
     const isTrue = Math.random() < targetIsTrueProb;
+    console.group(`[Puzzle Gen] Generating Analogy (${isTrue ? 'Target TRUE' : 'Target FALSE'})`);
 
     const lastIdx = nodes.length - 1;
     const oldestIdx = Math.max(0, lastIdx - (offset - 1));
@@ -409,6 +418,7 @@ function createAnalogy(nodes: string[], coordinates: Map<string, Vector>, lastPr
             if (others.length > 0) {
                 const pair2 = shuffle(others)[0];
                 statement = { itemA1: newest, itemB1: target, itemA2: pair2[0], itemB2: pair2[1] };
+                console.log(`  True Analogy Found: (${statement.itemA1}, ${statement.itemB1}) matches (${statement.itemA2}, ${statement.itemB2})`);
                 break;
             }
         }
@@ -421,6 +431,7 @@ function createAnalogy(nodes: string[], coordinates: Map<string, Vector>, lastPr
         if (others.length >= 2) {
             const [itemA2, itemB2] = others.slice(0, 2);
             statement = { itemA1, itemB1, itemA2, itemB2 };
+            console.log(`  False Analogy Generated: (${statement.itemA1}, ${statement.itemB1}) vs (${statement.itemA2}, ${statement.itemB2})`);
         } else {
             statement = { itemA1, itemB1, itemA2: itemA1, itemB2: itemB1 }; 
         }
@@ -429,6 +440,9 @@ function createAnalogy(nodes: string[], coordinates: Map<string, Vector>, lastPr
     const vec1 = getVec(statement.itemA1, statement.itemB1);
     const vec2 = getVec(statement.itemA2, statement.itemB2);
     const finalIsTrue = vec1.toString() === vec2.toString();
+
+    console.log(`  Vec1: [${vec1}] | Vec2: [${vec2}] | Final Result: ${finalIsTrue ? 'TRUE' : 'FALSE'}`);
+    console.groupEnd();
 
     const explanation = finalIsTrue
         ? `The relationship between ${statement.itemA1} and ${statement.itemB1} is identical to the relationship between ${statement.itemA2} and ${statement.itemB2}.`
