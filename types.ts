@@ -16,6 +16,11 @@ export interface Settings {
     minimalRelevance: boolean;
     minimalHierarchy: boolean;
     interferenceRatio: number;
+    isTimed: boolean;
+    startingTime: number;
+    correctBonus: number;
+    wrongPenalty: number;
+    timeCap: number;
 }
 
 export interface HistoryEntry {

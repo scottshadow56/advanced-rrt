@@ -246,6 +246,104 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ currentSettings, onSave
                     />
                     <p className="text-xs text-slate-500 mt-1 italic">Controls the frequency of sophisticated false conclusions where spatial dimensions match but higher dimensions are wrong.</p>
                 </div>
+
+                <div className="space-y-4 p-4 bg-slate-700/30 rounded-lg border border-slate-700">
+                    <h3 className="text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Time Control</h3>
+                    
+                    <label className="flex justify-between items-center text-lg text-slate-300">
+                        <span>Enable Timer</span>
+                        <button
+                            onClick={() => setSettings(s => ({ ...s, isTimed: !s.isTimed }))}
+                            aria-pressed={settings.isTimed}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 ${
+                                settings.isTimed ? 'bg-indigo-500' : 'bg-slate-700'
+                            }`}
+                        >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                settings.isTimed ? 'translate-x-6' : 'translate-x-1'
+                            }`} />
+                        </button>
+                    </label>
+
+                    {settings.isTimed && (
+                        <div className="space-y-4 pt-2 border-t border-slate-600/30">
+                            <div>
+                                <label htmlFor="startingTime" className="flex justify-between items-center text-sm text-slate-400">
+                                    <span>Starting Time (s)</span>
+                                    <span className="font-bold text-cyan-400">{settings.startingTime}</span>
+                                </label>
+                                <input
+                                    id="startingTime"
+                                    type="range"
+                                    min="5"
+                                    max="120"
+                                    step="5"
+                                    value={settings.startingTime}
+                                    onChange={(e) => {
+                                        const val = Number(e.target.value);
+                                        setSettings(s => ({ 
+                                            ...s, 
+                                            startingTime: val,
+                                            timeCap: Math.max(s.timeCap, val)
+                                        }));
+                                    }}
+                                    className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label htmlFor="correctBonus" className="flex justify-between items-center text-sm text-slate-400">
+                                    <span>Correct Bonus (s)</span>
+                                    <span className="font-bold text-green-400">+{settings.correctBonus}</span>
+                                </label>
+                                <input
+                                    id="correctBonus"
+                                    type="range"
+                                    min="0"
+                                    max="30"
+                                    step="1"
+                                    value={settings.correctBonus}
+                                    onChange={(e) => setSettings(s => ({ ...s, correctBonus: Number(e.target.value) }))}
+                                    className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label htmlFor="wrongPenalty" className="flex justify-between items-center text-sm text-slate-400">
+                                    <span>Wrong Penalty (s)</span>
+                                    <span className="font-bold text-red-400">-{settings.wrongPenalty}</span>
+                                </label>
+                                <input
+                                    id="wrongPenalty"
+                                    type="range"
+                                    min="0"
+                                    max="30"
+                                    step="1"
+                                    value={settings.wrongPenalty}
+                                    onChange={(e) => setSettings(s => ({ ...s, wrongPenalty: Number(e.target.value) }))}
+                                    className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label htmlFor="timeCap" className="flex justify-between items-center text-sm text-slate-400">
+                                    <span>Time Cap (Max s)</span>
+                                    <span className="font-bold text-amber-400">{settings.timeCap}</span>
+                                </label>
+                                <input
+                                    id="timeCap"
+                                    type="range"
+                                    min={settings.startingTime}
+                                    max="300"
+                                    step="5"
+                                    value={settings.timeCap}
+                                    onChange={(e) => setSettings(s => ({ ...s, timeCap: Math.max(s.startingTime, Number(e.target.value)) }))}
+                                    className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
 
             <button

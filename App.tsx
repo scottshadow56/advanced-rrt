@@ -38,6 +38,11 @@ const App: React.FC = () => {
         minimalRelevance: false,
         minimalHierarchy: false,
         interferenceRatio: 2,
+        isTimed: true,
+        startingTime: 30,
+        correctBonus: 10,
+        wrongPenalty: 10,
+        timeCap: 60,
     });
     
     const [currentChallenge, setCurrentChallenge] = useState<Challenge | null>(null);
@@ -69,7 +74,7 @@ const App: React.FC = () => {
     }, [settings, gameStartTime]);
 
     useEffect(() => {
-        if (gameState !== 'playing' || feedback || isMemorizing) return;
+        if (gameState !== 'playing' || feedback || isMemorizing || !settings.isTimed) return;
         if (timeLeft <= 0) {
             setGameOverReason('time');
             setGameState('gameOver');
@@ -101,7 +106,7 @@ const App: React.FC = () => {
     }, [puzzleState, premises, settings.challengeType, settings.wordLength, gameBias, settings.relationMode, settings.stimuliType, settings.interferenceRatio, recentPairs, settings.initialPremises]);
 
     useEffect(() => {
-        if (gameState !== 'playing' || !isMemorizing) return;
+        if (gameState !== 'playing' || !isMemorizing || !settings.isTimed) return;
 
         if (memorizationTimeLeft <= 0) {
             handleContinueFromMemorization();
@@ -136,7 +141,7 @@ const App: React.FC = () => {
         setCurrentChallenge(null);
         setLastPremise(null); 
         setInitialPremises(initialPuzzle.premises);
-        setTimeLeft(30);
+        setTimeLeft(settings.isTimed ? settings.startingTime : 999);
         setScore(0);
         setCorrectAnswers(0);
         setCurrentRound(1);
@@ -172,10 +177,14 @@ const App: React.FC = () => {
             playCorrect();
             setScore(s => s + 10);
             setCorrectAnswers(c => c + 1);
-            setTimeLeft(t => Math.min(30, t + 10));
+            if (settings.isTimed) {
+                setTimeLeft(t => Math.min(settings.timeCap, t + settings.correctBonus));
+            }
         } else {
             playIncorrect();
-            setTimeLeft(t => Math.max(0, t - 10));
+            if (settings.isTimed) {
+                setTimeLeft(t => Math.max(0, t - settings.wrongPenalty));
+            }
         }
         
         setTimeout(() => {
@@ -291,6 +300,7 @@ const App: React.FC = () => {
                     minimalHierarchy={settings.minimalHierarchy}
                     isShowingLegend={isShowingLegend}
                     onContinueFromLegend={handleContinueFromLegend}
+                    isTimed={settings.isTimed}
                 />;
             case 'gameOver':
                 return <GameOverScreen score={score} onGoToMenu={handleGoToMenu} reason={gameOverReason} />;

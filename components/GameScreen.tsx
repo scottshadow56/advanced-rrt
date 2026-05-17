@@ -29,9 +29,10 @@ interface GameScreenProps {
     minimalHierarchy: boolean;
     isShowingLegend: boolean;
     onContinueFromLegend: () => void;
+    isTimed: boolean;
 }
 
-const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onAnswer, feedback, lastPremise, initialPremises, onQuit, currentRound, totalRounds, isMemorizing, onContinue, puzzleState, oldestNode, memorizationTimeLeft, voronoiComplexity, playHighPitch, playLowPitch, minimalVertical, minimalTemporal, minimalRelevance, minimalHierarchy, isShowingLegend, onContinueFromLegend }) => {
+const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onAnswer, feedback, lastPremise, initialPremises, onQuit, currentRound, totalRounds, isMemorizing, onContinue, puzzleState, oldestNode, memorizationTimeLeft, voronoiComplexity, playHighPitch, playLowPitch, minimalVertical, minimalTemporal, minimalRelevance, minimalHierarchy, isShowingLegend, onContinueFromLegend, isTimed }) => {
     const timerColor = timeLeft <= 10 ? 'text-red-500' : timeLeft <= 20 ? 'text-yellow-400' : 'text-cyan-400';
     const memorizationTimerColor = memorizationTimeLeft <= 10 ? 'text-red-500' : memorizationTimeLeft <= 20 ? 'text-yellow-400' : 'text-cyan-400';
 
@@ -254,10 +255,12 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
                  <div className="font-bold text-slate-400">
                     {isShowingLegend ? 'Legend' : isMemorizing ? 'Memorize!' : <>Round {currentRound} <span className="text-xs">/ {totalRounds}</span></>}
                 </div>
-                <div className={`flex items-center gap-2 text-2xl font-bold ${isShowingLegend ? 'text-cyan-400' : isMemorizing ? memorizationTimerColor : timerColor}`}>
-                    <Timer className="w-6 h-6" />
-                    <span>{isShowingLegend ? '-' : isMemorizing ? memorizationTimeLeft : timeLeft}</span>
-                </div>
+                {isTimed && (
+                    <div className={`flex items-center gap-2 text-2xl font-bold ${isShowingLegend ? 'text-cyan-400' : isMemorizing ? memorizationTimerColor : timerColor}`}>
+                        <Timer className="w-6 h-6" />
+                        <span>{isShowingLegend ? '-' : isMemorizing ? (isTimed ? memorizationTimeLeft : '∞') : timeLeft}</span>
+                    </div>
+                )}
             </div>
 
             {isShowingLegend ? renderLegend() : (
