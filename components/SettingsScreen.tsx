@@ -26,6 +26,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ currentSettings, onSave
             case 'spatial_temporal_vertical': return '4D';
             case 'spatial_temporal_vertical_relevance': return '5D';
             case 'spatial_temporal_vertical_relevance_hierarchy': return '6D';
+            case 'distinction': return 'Distinction';
             default: return mode;
         }
     };
