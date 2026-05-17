@@ -62,7 +62,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
         let vertical: 'above' | 'below' | null = null;
         let temporal: 'after' | 'before' | null = null;
         let relevance: 'more' | 'less' | null = null;
-        let hierarchy: 'above' | 'below' | 'neutral' | null = null;
+        let hierarchy: 'above' | 'below' | 'neutral' | 'opposite' | null = null;
         let spatialDir: string | null = null;
 
         // 1. Vertical
@@ -78,9 +78,10 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
         else if (lowDir.includes('less relevant') || lowDir.includes('less than')) relevance = 'less';
 
         // 4. Hierarchy / Distinction
-        if (lowDir.includes('hierarchically above') || lowDir.includes('opposite')) hierarchy = 'above';
+        if (lowDir.includes('hierarchically above')) hierarchy = 'above';
         else if (lowDir.includes('hierarchically below')) hierarchy = 'below';
         else if (lowDir.includes('same')) hierarchy = 'neutral';
+        else if (lowDir.includes('opposite')) hierarchy = 'opposite';
 
         // 5. Spatial
         const spatialKeywords = ['north-east', 'south-east', 'north-west', 'south-west', 'north', 'south', 'east', 'west'];
@@ -101,6 +102,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
         if (relevance && !minimalRelevance) displayParts.push(relevance === 'more' ? 'More' : 'Less');
         if (hierarchy && !minimalHierarchy) {
             if (hierarchy === 'neutral') displayParts.push('Same');
+            else if (hierarchy === 'opposite') displayParts.push('Opposite');
             else displayParts.push(hierarchy === 'above' ? 'H-Above' : 'H-Below');
         }
 
@@ -112,7 +114,11 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
             else if (vertical) finalContent = vertical === 'above' ? 'Above' : 'Below';
             else if (temporal) finalContent = temporal === 'after' ? 'After' : 'Before';
             else if (relevance) finalContent = relevance === 'more' ? 'More' : 'Less';
-            else if (hierarchy) finalContent = hierarchy === 'neutral' ? 'Same' : (hierarchy === 'above' ? 'H-Above' : 'H-Below');
+            else if (hierarchy) {
+                if (hierarchy === 'neutral') finalContent = 'Same';
+                else if (hierarchy === 'opposite') finalContent = 'Opposite';
+                else finalContent = hierarchy === 'above' ? 'H-Above' : 'H-Below';
+            }
         }
 
         if (!finalContent) finalContent = direction;
@@ -157,8 +163,6 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
             hierarchyStyle = "decoration-dashed underline underline-offset-8";
         } else if (hierarchy === 'below') {
             hierarchyStyle = "decoration-dotted underline font-light underline-offset-8";
-        } else if (hierarchy === 'neutral') {
-            hierarchyStyle = "decoration-solid underline opacity-50 underline-offset-8 text-slate-400";
         }
 
         return (
@@ -214,8 +218,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ score, timeLeft, challenge, onA
             legendItems.push({ label: 'Less Relevant', style: "blur-[0.6px] font-thin text-slate-100" });
         }
         if (minimalHierarchy) {
-            legendItems.push({ label: 'H. Above', style: "border-b-2 border-dashed border-yellow-400/50 pb-0.5 text-slate-100" });
-            legendItems.push({ label: 'H. Below', style: "border-b-2 border-dotted border-slate-600 pb-0.5 text-slate-100 font-light" });
+            legendItems.push({ label: 'H. Above', style: "decoration-dashed underline underline-offset-8" });
+            legendItems.push({ label: 'H. Below', style: "decoration-dotted underline font-light underline-offset-8" });
         }
 
         return (
