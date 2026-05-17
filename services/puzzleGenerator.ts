@@ -4,26 +4,26 @@ import type { Premise, Conclusion, Vector, Analogy, Challenge, Settings } from '
 const VOWELS = ['A', 'E', 'I', 'O', 'U'];
 const CONSONANTS = ['B', 'C', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'R', 'S', 'T', 'V', 'W', 'X', 'Y', 'Z'];
 const SPATIAL_DIRECTIONS: { name: string, vector: Vector }[] = [
-    { name: "North of", vector: [0, 1, 0, 0, 0, 0] }, { name: "South of", vector: [0, -1, 0, 0, 0, 0] },
-    { name: "East of", vector: [1, 0, 0, 0, 0, 0] }, { name: "West of", vector: [-1, 0, 0, 0, 0, 0] },
-    { name: "North-East of", vector: [1, 1, 0, 0, 0, 0] }, { name: "South-East of", vector: [1, -1, 0, 0, 0, 0] },
-    { name: "North-West of", vector: [-1, 1, 0, 0, 0, 0] }, { name: "South-West of", vector: [-1, -1, 0, 0, 0, 0] },
+    { name: "North of", vector: [0, 1, 0, 0, 0, 0, 0] }, { name: "South of", vector: [0, -1, 0, 0, 0, 0, 0] },
+    { name: "East of", vector: [1, 0, 0, 0, 0, 0, 0] }, { name: "West of", vector: [-1, 0, 0, 0, 0, 0, 0] },
+    { name: "North-East of", vector: [1, 1, 0, 0, 0, 0, 0] }, { name: "South-East of", vector: [1, -1, 0, 0, 0, 0, 0] },
+    { name: "North-West of", vector: [-1, 1, 0, 0, 0, 0, 0] }, { name: "South-West of", vector: [-1, -1, 0, 0, 0, 0, 0] },
 ];
 
 const VERTICAL_DIRECTIONS: { name: string, vector: Vector }[] = [
-    { name: "Above", vector: [0, 0, 1, 0, 0, 0] }, { name: "Below", vector: [0, 0, -1, 0, 0, 0] },
+    { name: "Above", vector: [0, 0, 1, 0, 0, 0, 0] }, { name: "Below", vector: [0, 0, -1, 0, 0, 0, 0] },
 ];
 
 const COMPARISON_DIRECTIONS: { name: string, vector: Vector }[] = [
-    { name: "Greater than", vector: [0, 0, 0, 0, 1, 0] }, { name: "Less than", vector: [0, 0, 0, 0, -1, 0] },
+    { name: "Greater than", vector: [0, 0, 0, 0, 1, 0, 0] }, { name: "Less than", vector: [0, 0, 0, 0, -1, 0, 0] },
 ];
 
 const TEMPORAL_DIRECTIONS: { name: string, vector: Vector }[] = [
-    { name: "After", vector: [0, 0, 0, 1, 0, 0] }, { name: "Before", vector: [0, 0, 0, -1, 0, 0] },
+    { name: "After", vector: [0, 0, 0, 1, 0, 0, 0] }, { name: "Before", vector: [0, 0, 0, -1, 0, 0, 0] },
 ];
 
 const DISTINCTION_DIRECTIONS: { name: string, vector: Vector }[] = [
-    { name: "the Same as", vector: [0, 0, 0, 0, 0, 0] }, { name: "the Opposite of", vector: [0, 0, 0, 0, 0, 1] },
+    { name: "the Same as", vector: [0, 0, 0, 0, 0, 0, 0] }, { name: "the Opposite of", vector: [0, 0, 0, 0, 0, 0, 1] },
 ];
 
 const SPATIAL_TEMPORAL_DIRECTIONS: { name: string, vector: Vector }[] = (() => {
@@ -43,7 +43,7 @@ const SPATIAL_TEMPORAL_DIRECTIONS: { name: string, vector: Vector }[] = (() => {
         for (const [tName, tVec] of temporal) {
             res.push({ 
                 name: `${sName} and ${tName}`, 
-                vector: [sVec[0], sVec[1], 0, tVec[0], 0, 0] 
+                vector: [sVec[0], sVec[1], 0, tVec[0], 0, 0, 0] 
             });
         }
     }
@@ -51,14 +51,14 @@ const SPATIAL_TEMPORAL_DIRECTIONS: { name: string, vector: Vector }[] = (() => {
     for (const [sName, sVec] of spatial) {
         res.push({
             name: `${sName} of`,
-            vector: [sVec[0], sVec[1], 0, 0, 0, 0]
+            vector: [sVec[0], sVec[1], 0, 0, 0, 0, 0]
         });
     }
     // Partial: Temporal only
     for (const [tName, tVec] of temporal) {
         res.push({
             name: tName,
-            vector: [0, 0, 0, tVec[0], 0, 0]
+            vector: [0, 0, 0, tVec[0], 0, 0, 0]
         });
     }
     return res;
@@ -80,7 +80,7 @@ const SPATIAL_VERTICAL_DIRECTIONS: { name: string, vector: Vector }[] = (() => {
         for (const [vName, vVec] of vertical) {
             res.push({ 
                 name: `${sName} and ${vName}`, 
-                vector: [sVec[0], sVec[1], vVec[0], 0, 0, 0] 
+                vector: [sVec[0], sVec[1], vVec[0], 0, 0, 0, 0] 
             });
         }
     }
@@ -88,14 +88,14 @@ const SPATIAL_VERTICAL_DIRECTIONS: { name: string, vector: Vector }[] = (() => {
     for (const [sName, sVec] of spatial) {
         res.push({
             name: `${sName} of`,
-            vector: [sVec[0], sVec[1], 0, 0, 0, 0]
+            vector: [sVec[0], sVec[1], 0, 0, 0, 0, 0]
         });
     }
     // Partial: Vertical only
     for (const [vName, vVec] of vertical) {
         res.push({
             name: vName,
-            vector: [0, 0, vVec[0], 0, 0, 0]
+            vector: [0, 0, vVec[0], 0, 0, 0, 0]
         });
     }
     return res;
@@ -121,7 +121,7 @@ const SPATIAL_TEMPORAL_VERTICAL_DIRECTIONS: { name: string, vector: Vector }[] =
             for (const [vName, vVec] of vertical) {
                 res.push({ 
                     name: `${sName}, ${vName}, and ${tName}`, 
-                    vector: [sVec[0], sVec[1], vVec[0], tVec[0], 0, 0] 
+                    vector: [sVec[0], sVec[1], vVec[0], tVec[0], 0, 0, 0] 
                 });
             }
         }
@@ -134,7 +134,7 @@ const SPATIAL_TEMPORAL_VERTICAL_DIRECTIONS: { name: string, vector: Vector }[] =
         for (const [vName, vVec] of vertical) {
             res.push({
                 name: `${vName} and ${tName}`,
-                vector: [0, 0, vVec[0], tVec[0], 0, 0]
+                vector: [0, 0, vVec[0], tVec[0], 0, 0, 0]
             });
         }
     }
@@ -162,7 +162,7 @@ const SPATIAL_TEMPORAL_VERTICAL_RELEVANCE_DIRECTIONS: { name: string, vector: Ve
     for (const [relName, relVec] of relevance) {
         combined.push({
             name: relName,
-            vector: [0, 0, 0, 0, relVec[0], 0]
+            vector: [0, 0, 0, 0, relVec[0], 0, 0]
         });
     }
     return [...res, ...combined];
@@ -188,7 +188,7 @@ const SPATIAL_TEMPORAL_VERTICAL_RELEVANCE_HIERARCHY_DIRECTIONS: { name: string, 
     for (const [hName, hVec] of hierarchy) {
         combined.push({
             name: hName,
-            vector: [0, 0, 0, 0, 0, hVec[0]]
+            vector: [0, 0, 0, 0, 0, hVec[0], 0]
         });
     }
     return [...res, ...combined];
@@ -241,7 +241,11 @@ function getDirectionFromVector(vec: Vector, mode: Settings['relationMode']): st
     const directions = getDirectionsForMode(mode);
     if (directions.length === 0) return null;
     const targetLen = directions[0].vector.length;
-    const normalizedVec = vec.slice(0, targetLen).map(v => Math.sign(v));
+    const normalizedVec = vec.slice(0, targetLen).map((v, i) => {
+        // Index 6 is Distinction (Same/Opposite) which uses parity logic
+        if (i === 6) return Math.abs(v % 2);
+        return Math.sign(v);
+    });
     
     for (const dir of directions) {
         if (dir.vector.length === normalizedVec.length && dir.vector.every((v, i) => v === normalizedVec[i])) {
@@ -280,7 +284,7 @@ function createConclusion(nodes: string[], coordinates: Map<string, Vector>, las
     let itemB = nodes[oldestIdxInWindow];
 
     // Find a pair that are NOT at the same location if possible
-    let actualVec: Vector = [0,0,0,0,0,0];
+    let actualVec: Vector = [0,0,0,0,0,0,0];
     let actualDirection: string | null = null;
 
     const pickAndVerify = (a: string, b: string) => {
@@ -378,7 +382,7 @@ function createConclusion(nodes: string[], coordinates: Map<string, Vector>, las
     return { statement, isTrue: finalIsTrue, difficulty, explanation, highlightNodes: [itemA, itemB] };
 }
 
-function createAnalogy(nodes: string[], coordinates: Map<string, Vector>, lastPremise: Premise | null = null, targetIsTrueProb: number = 0.5, interferenceRatio: number = 2, recentPairs: string[][] = [], activePreference: number = 0.9, offset: number = 3): { statement: Analogy, isTrue: boolean, difficulty: number, explanation: string, highlightNodes: string[] } {
+function createAnalogy(nodes: string[], coordinates: Map<string, Vector>, lastPremise: Premise | null = null, targetIsTrueProb: number = 0.5, relationMode: Settings['relationMode'] = 'spatial', interferenceRatio: number = 2, recentPairs: string[][] = [], activePreference: number = 0.9, offset: number = 3): { statement: Analogy, isTrue: boolean, difficulty: number, explanation: string, highlightNodes: string[] } {
     const isTrue = Math.random() < targetIsTrueProb;
     console.group(`[Puzzle Gen] Generating Analogy (${isTrue ? 'Target TRUE' : 'Target FALSE'})`);
 
@@ -392,7 +396,10 @@ function createAnalogy(nodes: string[], coordinates: Map<string, Vector>, lastPr
     const getVec = (a: string, b: string) => {
         const cA = coordinates.get(a)!;
         const cB = coordinates.get(b)!;
-        return cA.map((v, i) => Math.sign(v - cB[i]));
+        return cA.map((v, i) => {
+            if (i === 6) return Math.abs((v - cB[i]) % 2);
+            return Math.sign(v - cB[i]);
+        });
     };
 
     let statement: Analogy | null = null;
@@ -472,7 +479,7 @@ const getChallenge = (
     }
 
     if (useAnalogy && nodes.length >= 4) {
-        const { statement, isTrue, difficulty, explanation, highlightNodes } = createAnalogy(nodes, coordinates, lastPremise, targetIsTrueProb, interferenceRatio, recentPairs, 0.9, offset);
+        const { statement, isTrue, difficulty, explanation, highlightNodes } = createAnalogy(nodes, coordinates, lastPremise, targetIsTrueProb, relationMode, interferenceRatio, recentPairs, 0.9, offset);
         return { type: 'analogy', statement, isTrue, difficulty, explanation, highlightNodes };
     } else {
         const { statement, isTrue, difficulty, explanation, highlightNodes } = createConclusion(nodes, coordinates, lastPremise, targetIsTrueProb, relationMode, interferenceRatio, recentPairs, 0.9, offset);
